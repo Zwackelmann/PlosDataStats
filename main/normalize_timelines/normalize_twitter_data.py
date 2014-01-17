@@ -1,6 +1,8 @@
 import json
 import numpy
 from scipy import interpolate
+from main.util.common import readFromJson, dataPath
+
 
 def interpolateDatapoint(timeline, time):
 	exactMatches = filter(lambda x: x[0] == time, timeline)
@@ -16,7 +18,7 @@ def addDummyPointIfNoDataAvailable(timeline, publicationDate, delayFromPubDate):
 	if(timeline[0][0] > publicationDate+delayFromPubDate):
 		timeline.insert(0, [publicationDate+delayFromPubDate, 0])
 
-lines = open("points_filtered_2.json", "r")
+lines = open(dataPath("points_filtered_2.json"), "r")
 
 for line in lines:
     doc = json.loads(line)

@@ -37,7 +37,6 @@ for line in lines:
     if(pubDateToFirst < 50*24*60*60 and pubDateToLast > 150*24*60*60 and span > 150*24*60*60):
     	count += 1
 
-print count
 
 # hist1 = numpy.histogram(distancesToFirstPost, bins=10)
 # hist2 = numpy.histogram(distancesToLastPost, bins=10)
