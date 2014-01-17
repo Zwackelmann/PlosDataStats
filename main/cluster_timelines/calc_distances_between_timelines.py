@@ -11,7 +11,7 @@ numTimelines = len(timelines)
 distances = []
 
 for i in range(0, numTimelines):
-	for j in range(i+1, numTimelines):
-		distances.append(mlpy.dtw_std(timelines[i], timelines[j]))
+    for j in range(i+1, numTimelines):
+        distances.append(mlpy.dtw_std(timelines[i], timelines[j]))
 
 print json.dumps(distances)
