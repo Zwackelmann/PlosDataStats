@@ -23,19 +23,19 @@ for line in lines:
     maxTweets = timelineSorted[-1][1]
 
     if(maxTweets >= minTweetsToRegardDocument):
-    	if(doi2PublicationdateMap.get(docId, None) != None):
-    		publicationDateTimestamp = int(time.mktime(time.strptime(doi2PublicationdateMap[docId][:10], "%Y-%m-%d")))
-    		timelineSortedAsTimestamps = map(lambda timelineItem: [timelineItem[0] / 1000, timelineItem[1]], timelineSorted)
+        if(doi2PublicationdateMap.get(docId, None) != None):
+            publicationDateTimestamp = int(time.mktime(time.strptime(doi2PublicationdateMap[docId][:10], "%Y-%m-%d")))
+            timelineSortedAsTimestamps = map(lambda timelineItem: [timelineItem[0] / 1000, timelineItem[1]], timelineSorted)
 
-    		# filter by timeline data available
-    		pubDateToFirst = timelineSortedAsTimestamps[0][0] - publicationDateTimestamp
-    		pubDateToLast = timelineSortedAsTimestamps[-1][0] - publicationDateTimestamp
-    		span = timelineSortedAsTimestamps[-1][0] - timelineSortedAsTimestamps[0][0]
+            # filter by timeline data available
+            pubDateToFirst = timelineSortedAsTimestamps[0][0] - publicationDateTimestamp
+            pubDateToLast = timelineSortedAsTimestamps[-1][0] - publicationDateTimestamp
+            span = timelineSortedAsTimestamps[-1][0] - timelineSortedAsTimestamps[0][0]
 
-    		if(
-    			pubDateToFirst <= maxDaysUntilFirstTweet*24*60*60 and 
-    			pubDateToLast >= minDaysUntilLastTweet*24*60*60 and 
-    			span >= minNumDaysWithTweets*24*60*60
-    		):
-    			print json.dumps({"id" : docId, "publication_date" : publicationDateTimestamp, "twitter-data" : timelineSortedAsTimestamps})
+            if(
+                pubDateToFirst <= maxDaysUntilFirstTweet*24*60*60 and 
+                pubDateToLast >= minDaysUntilLastTweet*24*60*60 and 
+                span >= minNumDaysWithTweets*24*60*60
+            ):
+                print json.dumps({"id" : docId, "publication_date" : publicationDateTimestamp, "twitter-data" : timelineSortedAsTimestamps})
 

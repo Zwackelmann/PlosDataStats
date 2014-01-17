@@ -12,7 +12,7 @@ currentDir = path.dirname(path.realpath(__file__))
 
 basedir = currentDir
 while not (path.basename(basedir) == baseDirName or basedir == "/"):
-   basedir = path.abspath(path.join(basedir, path.pardir))
+    basedir = path.abspath(path.join(basedir, path.pardir))
 
 dataBasePath = path.join(basedir, relativeDataPath)
 

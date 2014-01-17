@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 lines = open("points_filtered_2.json", "r")
 
 def formatHist(hist):
-	print '     ' + str(map(lambda x: "%5d" % x, hist[0]))
-	print map(lambda x: "%5d" % int(x/60/60/24), hist[1])
-	print sum(hist[0])
+    print '     ' + str(map(lambda x: "%5d" % x, hist[0]))
+    print map(lambda x: "%5d" % int(x/60/60/24), hist[1])
+    print sum(hist[0])
 
 
 distancesToFirstPost = []
@@ -29,13 +29,13 @@ for line in lines:
     span = timelineSotred[-1][0] - timelineSotred[0][0]
 
     """if(pubDateToFirst < 50*24*60*60):
-    	distancesToFirstPost.append(pubDateToFirst)
+        distancesToFirstPost.append(pubDateToFirst)
 
     if(span > 200*24*60*60):
-    	firstToLastPost.append(span)"""
+        firstToLastPost.append(span)"""
 
     if(pubDateToFirst < 50*24*60*60 and pubDateToLast > 150*24*60*60 and span > 150*24*60*60):
-    	count += 1
+        count += 1
 
 
 # hist1 = numpy.histogram(distancesToFirstPost, bins=10)

@@ -22,7 +22,7 @@ clu = fcluster(Z, 2, depth=5000, criterion='distance')
 
 cluInstances = {}
 for i in clu:
-	cluInstances[i] = cluInstances.get(i, 0) + 1
+    cluInstances[i] = cluInstances.get(i, 0) + 1
 
 # numpy.save(dataPath("clusters.npy"), clu)
 # clu = numpy.load(dataPath("clusters.npy"))

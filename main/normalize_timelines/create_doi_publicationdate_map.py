@@ -12,25 +12,25 @@ publicationDateRe = re.compile('"publication_date": "([^"]*)"')
 
 
 def endDoc():
-	global doi
-	global publicationDate
+    global doi
+    global publicationDate
 
-	if doi != None and publicationDate != None:
-		documents[doi] = publicationDate
+    if doi != None and publicationDate != None:
+        documents[doi] = publicationDate
 
-	doi = None
-	publicationDate = None
+    doi = None
+    publicationDate = None
 
 for line in lines:
-	m = doiRe.search(line)
-	if m:
-		doi = m.group(1)
-	else:
-		m = publicationDateRe.search(line)
-		if m:
-			publicationDate = m.group(1)
-		else:
-			if line[:2] == "--":
-				endDoc()
+    m = doiRe.search(line)
+    if m:
+        doi = m.group(1)
+    else:
+        m = publicationDateRe.search(line)
+        if m:
+            publicationDate = m.group(1)
+        else:
+            if line[:2] == "--":
+                endDoc()
 
 print json.dumps(documents)
