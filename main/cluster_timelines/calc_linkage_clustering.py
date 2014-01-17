@@ -4,18 +4,16 @@ from matplotlib.pyplot import show
 from hcluster import pdist, linkage, dendrogram, fcluster
 import numpy
 from numpy.random import rand
+from main.util.common import dataPath
 
 # load distance matrix
-# distanceMatrixStream = open('distances.json')
-# distanceMatrix = json.load(distanceMatrixStream)
-# distanceMatrixStream.close()
 
 # Z = linkage(distanceMatrix)
 # numpy.save("dendrogram.npy", Z)
 # dendrogram(Z)
 # show()
 
-Z = numpy.load("dendrogram.npy")
+Z = numpy.load(dataPath("dendrogram.npy"))
 
 dendrogram(Z)
 show()
@@ -26,8 +24,8 @@ cluInstances = {}
 for i in clu:
 	cluInstances[i] = cluInstances.get(i, 0) + 1
 
-# numpy.save("clusters.npy", clu)
-# clu = numpy.load("clusters.npy")
+# numpy.save(dataPath("clusters.npy"), clu)
+# clu = numpy.load(dataPath("clusters.npy"))
 
 """hist1 = numpy.histogram(list(cluInstances.itervalues()))
 

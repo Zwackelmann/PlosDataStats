@@ -4,6 +4,7 @@ from os.path import basename
 import re
 import json
 import numpy
+from main.common.util import readFromJson
 
 def formatHist(hist):
     print '     ' + str(map(lambda x: "%5d" % x, hist[0]))
@@ -83,9 +84,7 @@ boundsPerSource = {
     'crossref' : (1, 30)
 }
 
-s = open('result_grouped.json')
-groupedResults = json.load(s)
-s.close()
+groupedResults = readFromJson('result_grouped.json')
 
 for key in filter(lambda x: x not in irrelevant, groupedResults.keys()):
     values = groupedResults[key]

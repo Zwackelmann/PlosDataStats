@@ -2,8 +2,9 @@ import json
 import numpy
 from scipy import interpolate
 import mlpy
+from main.util.common import readFromJson
 
-lines = open("normalized_points.json", "r")
+lines = readFromJson("normalized_points.json")
 
 timelines = map(lambda line: map(lambda x: x[1], json.loads(line)['twitter-data']), lines)
 numTimelines = len(timelines)
