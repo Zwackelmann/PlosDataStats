@@ -6,7 +6,10 @@ relativeDataPath = "data"
 baseDirName = "PlosDataStats"
 plosDataBaseDir = "/home/toennies/plosALM/data/"
 
-plosDataFiles = [ f for f in os.listdir(plosDataBaseDir) if path.isfile(path.join(plosDataBaseDir,f)) ]
+onTbdb = False
+if path.isfile(plosDataBaseDir):
+    plosDataFiles = [ f for f in os.listdir(plosDataBaseDir) if path.isfile(path.join(plosDataBaseDir,f)) ]
+    onTbdb = True
 
 currentDir = path.dirname(path.realpath(__file__))
 
@@ -40,8 +43,36 @@ def writeAsJson(obj, path):
     file.close()
 
 def doForEachPlosDoc(fun):
-    for plosFile in plosDataFiles:
-        fullPath = path.join(plosDataBaseDir, plosFile)
-        docMetadataList = readAsJson(fullPath)
-        for docMetadata in docMetadataList:
-            fun(docMetadata)
+    if onTbdb:
+        for plosFile in plosDataFiles:
+            fullPath = path.join(plosDataBaseDir, plosFile)
+            docMetadataList = readAsJson(fullPath)
+            for docMetadata in docMetadataList:
+                fun(docMetadata)
+    else:
+        raise
+
+simpleDocsFilename = "relevant_document_data.json"
+simpleDocsPath = path.join(dataBasePath, simpleDocsFilename)
+def doForEachSimpleDoc(fun):
+    """
+    Document Structure:
+        [ [0]    [1]        [2]         [3]                [4]         ]
+        [ doi, pubDate, twitterData, citations, mendeleyDisciplineList ]
+
+        twitterData:
+                     [      [0]      [1]                 [2]                         [3]    ]
+            list of: [ "tweet text", user, retweetUser (None, wenn kein retweet), zeitpunkt ]
+
+        citations:
+                     [    [0]           [1]      ]
+            list of: [ zeitpunkt, totalCitations ]
+    """
+    lines = open(simpleDocsPath)
+    for line in lines:
+        doc = json.loads(line)
+        fun(doc)
+
+def formatHist(bins, bounds, formatHint = 5):
+    print (' ' * formatHint) + str(map(lambda x: ("%" + str(formatHint) + "d") % x, bins))
+    print map(lambda x: ("%" + str(formatHint) + "d") % x, bounds)
