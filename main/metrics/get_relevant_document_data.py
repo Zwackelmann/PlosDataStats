@@ -11,7 +11,7 @@ trage zu jedem dokument zusammen:
 
 """
 
-from main.util.common import doForEachPlosDoc, dataPath
+from main.util.common import doForEachPlosDoc, dataPath, readJsonFromData
 import re
 import json
 
