@@ -15,18 +15,16 @@ from main.util.common import doForEachPlosDoc, dataPath
 import re
 import json
 
-meneleyPublicationOutlets = []
+mendeleyPublicationOutlets = []
 def findRelevantData(doc):
     for source in doc['sources']:
         if source['name'] == 'mendeley':
             events = source['events']
             if len(events) != 0:
                 if 'publication_outlet' in events:
-                    meneleyPublicationOutlets.append(events['publication_outlet'])
+                    mendeleyPublicationOutlets.append(events['publication_outlet'])
 
 file = open(dataPath("publication_outlets.json"), "w")
-file.write(json.dumps(meneleyPublicationOutlets))
-
-doForEachPlosDoc(findRelevantData)
-
+doForEachPlosDoc(findRelevantData, verbose=True)
+file.write(json.dumps(mendeleyPublicationOutlets))
 file.close()
