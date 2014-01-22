@@ -209,4 +209,22 @@ def mendeleyDisciplines():
         figurePath("mendeleyDisciplines.pdf")
     )
 
-mendeleyDisciplines()
+def crossrefVsTwitter():
+    tweetVsCitationList = []
+
+    for doc in simpleDocs():
+        tweetVsCitationList.append([len(doc.tweets), doc.citationTimeline[0].totalCitations])
+
+    x, y = zip(*filter(lambda x: x[1]>0 and x[1] < 200 and x[0]>0 and x[0] < 300, tweetVsCitationList))
+    #plt.figure()
+    #plt.scatter(x, y)
+    #plt.ylabel("#Tweets")
+    #plt.xlabel("#Citations")
+    #plt.show()
+
+    p = numpy.polyfit(x, y, 1)
+    polyPoints = map(lambda x: numpy.polyval(p, x), range(min(x), max(x)+1))
+
+
+
+crossrefVsTwitter()
