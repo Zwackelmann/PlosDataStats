@@ -215,15 +215,21 @@ def crossrefVsTwitter():
     for doc in simpleDocs():
         tweetVsCitationList.append([len(doc.tweets), doc.citationTimeline[0].totalCitations])
 
-    x, y = zip(*filter(lambda x: x[1]>0 and x[1] < 200 and x[0]>0 and x[0] < 300, tweetVsCitationList))
+    x, y = zip(*filter(lambda x: x[1]>0 and x[1]<300 and x[0]>0 and x[0]<300, tweetVsCitationList))
     #plt.figure()
-    #plt.scatter(x, y)
-    #plt.ylabel("#Tweets")
-    #plt.xlabel("#Citations")
-    #plt.show()
+    plt.scatter(x, y)
+    plt.title("Korrelation zwischen Tweets und Zitationen")
+    plt.ylabel("#Tweets (1-300)")
+    plt.xlabel("#Citations (1-300)")
 
     p = numpy.polyfit(x, y, 1)
-    polyPoints = map(lambda x: numpy.polyval(p, x), range(min(x), max(x)+1))
+    xTrend = range(min(x), max(x)+1)
+    yTrend = map(lambda x: numpy.polyval(p, x), xTrend)
+
+    plt.plot(xTrend, yTrend, color='r')
+    plt.show()
+
+
 
 
 
