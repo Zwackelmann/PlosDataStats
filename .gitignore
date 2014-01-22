@@ -3,3 +3,4 @@ data
 *.pyc
 project.subl
 project.sublime-workspace
+tmp
