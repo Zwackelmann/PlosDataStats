@@ -9,7 +9,7 @@ baseDirName = "PlosDataStats"
 plosDataBaseDir = "/home/toennies/plosALM/data/"
 
 onTbdb = False
-if path.isfile(plosDataBaseDir):
+if path.isdir(plosDataBaseDir):
     plosDataFiles = [ f for f in os.listdir(plosDataBaseDir) if path.isfile(path.join(plosDataBaseDir,f)) ]
     onTbdb = True
 
@@ -48,21 +48,27 @@ def writeAsJson(obj, path):
     file.write(json.dumps(obj))
     file.close()
 
-def doForEachPlosDoc(fun):
+def doForEachPlosDoc(fun, maxDocs=None, verbose=False):
     if onTbdb:
+        count = 0
         for plosFile in plosDataFiles:
             fullPath = path.join(plosDataBaseDir, plosFile)
             docMetadataList = readAsJson(fullPath)
             for docMetadata in docMetadataList:
+                count += 1
+                if verbose and count%100 == 0:
+                    print count
+                if maxDocs and count >= maxDocs:
+                    return
+
                 fun(docMetadata)
     else:
-        raise
+        raise BaseException
 
 simpleDocsFilename = "relevant_document_data2.json"
 simpleDocsPath = path.join(dataBasePath, simpleDocsFilename)
-def doForEachSimpleDoc(fun):
-    """
-    Document Structure:
+def doForEachSimpleDoc(fun, maxDocs=None):
+    """Document Structure:
         [ [0]    [1]        [2]         [3]                [4]         ]
         [ doi, pubDate, twitterData, citations, mendeleyDisciplineList ]
 
@@ -73,9 +79,14 @@ def doForEachSimpleDoc(fun):
         citations:
                      [    [0]           [1]      ]
             list of: [ zeitpunkt, totalCitations ]
-    """
+"""
     lines = open(simpleDocsPath)
+    count = 0
     for line in lines:
+        count += 1
+        if maxDocs and count<=maxDocs:
+            break
+
         docData = json.loads(line)
         fun(SimpleDoc(docData))
 
