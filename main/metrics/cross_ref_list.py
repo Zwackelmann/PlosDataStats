@@ -15,26 +15,26 @@ from main.util.common import doForEachPlosDoc, dataPath
 import re
 import json
 
-mendeleyPublicationOutlets = []
+crossrefs = {}
 def findRelevantData(doc):
+    doi = doc['doi']
+    refs = []
+
     for source in doc['sources']:
-        if source['name'] == 'mendeley':
+        if source['name'] == 'crossref':
             events = source['events']
             if len(events) != 0:
-                publicationOutlet = None
-                issn = None
+                for event in [event['event'] for event in events]:
+                    issn = event.get('issn', None)
+                    referencingDoi = event.get('doi', None)
+                    publicationType = event.get('publication_type', None)
+                    
+                    refs.append({'doi' : referencingDoi, 'issn' : issn, 'type' : publicationType})
 
-                if 'publication_outlet' in events:
-                    publicationOutlet = events['publication_outlet']
-
-                if 'identifiers' in events:
-                    if 'issn' in events['identifiers']:
-                        issn = events['identifiers']['issn']
-
-                mendeleyPublicationOutlets.append([publicationOutlet, issn])
+    crossrefs[doi] = refs
 
 
-file = open(dataPath("publication_outlets.json"), "w")
+file = open(dataPath("crossrefs.json"), "w")
 doForEachPlosDoc(findRelevantData, verbose=True)
-file.write(json.dumps(mendeleyPublicationOutlets))
+file.write(json.dumps(crossrefs))
 file.close()

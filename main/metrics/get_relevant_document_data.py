@@ -15,10 +15,11 @@ from main.util.common import doForEachPlosDoc, dataPath, readJsonFromData
 import re
 import json
 
-file = open(dataPath("relevant_document_data.json"), "w")
+file = open(dataPath("relevant_document_data_plus_title.json"), "w")
 
 def findRelevantData(doc):
     doi = doc['doi']
+    title = doc['title']
     twitterData = None # liste von [ "tweet text", user, retweetUser (None, wenn kein retweet), zeitpunkt ]
     citations = None # [ zeitpunkt, totalCitations ]
     mendeleyDisciplineList = None
@@ -34,8 +35,8 @@ def findRelevantData(doc):
                 mendeleyDisciplineList = map(lambda x: x['name'], stats['discipline'])
         if source['name'] == 'crossref':
             citations = map(lambda x: [x['update_date'], x['total']], source['histories'])
-
-    file.write(json.dumps([doi, pubDate, twitterData, citations, mendeleyDisciplineList]) + "\n")
+    jdoc = json.dumps([doi, title, pubDate, twitterData, citations, mendeleyDisciplineList])
+    file.write(jdoc + "\n")
 
 
 retweetPattern = re.compile("^RT @([^:]*): (.*)$")
