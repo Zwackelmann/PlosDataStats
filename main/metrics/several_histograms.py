@@ -1,10 +1,11 @@
 import matplotlib.pyplot as plt
-from main.util.common import simpleDocs, dataPath, figurePath, groupCount
+from main.util.common import simpleDocs, dataPath, figurePath, groupCount, writeJsonToData, readJsonFromData, formatHist
 from matplotlib import ticker
 from main.util.plotting import histDisc, hist, barPlot, pieData
 import numpy
 import itertools
 from main.util.tex import simpleTabular, compileTex
+import os
 
 def publication_years():
     plt.figure()
@@ -13,6 +14,30 @@ def publication_years():
     histDisc(plt, publicationYears)
     plt.savefig(figurePath("publication_years.png"))
     plt.show()
+
+def distFirstTweetToDoc():
+    diffs = []
+    for doc in filter(lambda doc: len(doc.tweets) != 0, simpleDocs()):
+        pubTimestamp = doc.publicationTimestamp
+        # firstTweetTimestamp = max([tweet.timestamp for tweet in doc.tweets])
+        tweetTimestamps = [tweet.timestamp-pubTimestamp for tweet in doc.tweets]
+
+        diffs.extend(tweetTimestamps)
+
+    diffs = map(lambda x: x/60/60/24, diffs)
+    relBins, labels = pieData([
+        [lambda x: x<=7, "1W"],
+        [lambda x: x>7 and x<=30, "1M"],
+        [lambda x: x>30 and x<=160, "1/2Y"],
+        [lambda x: x>160 and x<=365, "1Y"],
+        [lambda x: x>365, ">1Y"],
+    ], diffs)
+
+    plt.figure()
+    plt.pie(relBins, autopct='%1.1f%%', 
+        startangle=90, labels=labels)
+    plt.show()
+
 
 def num_tweets():
     plt.figure()
@@ -209,28 +234,120 @@ def mendeleyDisciplines():
         figurePath("mendeleyDisciplines.pdf")
     )
 
-def crossrefVsTwitter():
+def crossrefVsTwitter(yearBounds = [None, None], maxTweets = 300, maxCitations = 300):
     tweetVsCitationList = []
 
-    for doc in simpleDocs():
+    totalDocs = 0
+    for doc in filter(lambda doc: 
+        (not yearBounds[0] or doc.publicationDatetime().year>=yearBounds[0]) and 
+            (not yearBounds[1] or doc.publicationDatetime().year<=yearBounds[1]), 
+        simpleDocs()
+    ):
         tweetVsCitationList.append([len(doc.tweets), doc.citationTimeline[0].totalCitations])
+        totalDocs += 1
 
-    x, y = zip(*filter(lambda x: x[1]>0 and x[1]<300 and x[0]>0 and x[0]<300, tweetVsCitationList))
-    #plt.figure()
+    x, y = zip(*filter(lambda x: x[1]>0 and x[1]<maxCitations and x[0]>0 and x[0]<maxTweets, tweetVsCitationList))
+    plt.figure()
     plt.scatter(x, y)
-    plt.title("Korrelation zwischen Tweets und Zitationen")
-    plt.ylabel("#Tweets (1-300)")
-    plt.xlabel("#Citations (1-300)")
+    plt.title("Korrelation zwischen Tweets und Zitationen (Papieren zwischen " + str(yearBounds[0]) + " und " + str(yearBounds[1]) + "; #Docs: " + str(totalDocs) + ")")
+    plt.ylabel("#Tweets (1-" + str(maxTweets) + ")")
+    plt.xlabel("#Citations (1-" + str(maxCitations) + ")")
 
     p = numpy.polyfit(x, y, 1)
     xTrend = range(min(x), max(x)+1)
     yTrend = map(lambda x: numpy.polyval(p, x), xTrend)
-
     plt.plot(xTrend, yTrend, color='r')
+
     plt.show()
 
+def userCorrelationToDiscipline():
+    """
+    zuerst user_disc_map erstellen:
+    [ user1 : [ 
+        [mendDisc1_1, mendDisc1_2, ...], // Liste von Disziplinen pro Tweet des Nutzers
+        [mendDisc2_1, mendDisc2_2, ...]
+    ], user2: [
+        ...
+    ] ]
+    """
+    if not os.path.isfile(dataPath("user_disc_map.json")):
+        userDiscList = []
+
+        for doc in simpleDocs():
+            twitterUsers = [tweet.user for tweet in doc.tweets]
+            disciplines = doc.mendeleyDisciplines
+            if len(twitterUsers)!=0 and disciplines!=None and len(disciplines)!=0:
+                for twitterUser in twitterUsers:
+                    userDiscList.append([twitterUser, disciplines])
+        
+        userDiscMap = {}
+        for item in userDiscList:
+            discList = userDiscMap.get(item[0], [])
+            discList.append(item[1])
+            userDiscMap[item[0]] = discList
+
+        writeJsonToData(userDiscMap, "user_disc_map.json")
+    else:
+        userDiscMap = readJsonFromData("user_disc_map.json")
 
 
+    """
+    dann "user_disc_count_map" erstellen:
+    [ user1 : { 
+        "total_posts" : n,
+        "user_posts_in_desc" : {
+            "disc1" : n_1,
+            "disc2" : n_2, 
+            ...
+        }
+    }, user2: {
+        ...
+    } ]
+    """
+    if not os.path.isfile(dataPath("user_disc_count_map.json")):
+        userDiscCountMap = { }
+        for user, descListList in userDiscMap.items():
+            totalPosts = len(descListList)
+            allUsersDesc = set()
+            for descList in descListList:
+                allUsersDesc |= set(descList)
+
+            userPostsInDesc = { }
+            for desc in allUsersDesc:
+                postsInDesc = sum(1 for descList in descListList if desc in descList)
+                userPostsInDesc[desc] = postsInDesc
+
+            userDiscCountMap[user] = { "total_posts" : totalPosts, "user_posts_in_desc" : userPostsInDesc }
+
+        writeJsonToData(userDiscCountMap, "user_disc_count_map.json")
+    else:
+        userDiscCountMap = readJsonFromData("user_disc_count_map.json")
+
+    for user, userdata in userDiscCountMap.items():
+        totalPosts = userdata['total_posts']
+
+        relCounts = []
+        for desc, count in userdata['user_posts_in_desc'].items():
+            relCounts.append([desc, float(count)/totalPosts])
+
+        relCounts = sorted(relCounts, key=lambda x: x[1], reverse=True)
+
+        if totalPosts > 50:
+            print user
+            print relCounts
+            print "\n\n"
 
 
-crossrefVsTwitter()
+# crossrefVsTwitter(yearBounds = [2008, 2008], maxTweets = 300, maxCitations = 300)
+# crossrefVsTwitter(yearBounds = [2009, 2009], maxTweets = 300, maxCitations = 300)
+# crossrefVsTwitter(yearBounds = [2010, 2010], maxTweets = 300, maxCitations = 300)
+# crossrefVsTwitter(yearBounds = [2011, 2011], maxTweets = 300, maxCitations = 300)
+# crossrefVsTwitter(yearBounds = [2012, 2012], maxTweets = 300, maxCitations = 300)
+# crossrefVsTwitter(yearBounds = [2013, 2013], maxTweets = 300, maxCitations = 300)
+# crossrefVsTwitter(yearBounds = [None, 2011], maxTweets = 300, maxCitations = 300)
+# crossrefVsTwitter(yearBounds = [None, None], maxTweets = 300, maxCitations = 300)
+# distFirstTweetToDoc()
+# userCorrelationToDiscipline()
+#num_tweets()
+
+# Bei Citations mal nur auf <2010 schauen

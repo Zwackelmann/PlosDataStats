@@ -130,6 +130,16 @@ def simpleDocs():
     lines = open(simpleDocsPath)
     return (SimpleDoc(json.loads(line)) for line in lines)
 
+mendeleyDisciplines = [
+    'Linguistics', 'Economics', 'Psychology', 'Humanities', 'Materials Science', 
+    'Earth Sciences', 'Environmental Sciences', 'Biological Sciences', 'Medicine', 
+    'Mathematics', 'Chemistry', 'Physics', 'Social Sciences', 'Electrical and Electronic Engineering', 
+    'Astronomy / Astrophysics / Space Science', 'Sports and Recreation', 
+    'Management Science / Operations Research', 'Philosophy', 'Law', 
+    'Business Administration', 'Engineering', 'Design', 'Arts and Literature', 
+    'Education', 'Computer and Information Science'
+]
+
 def groupCount(l):
     d = { }
 
