@@ -15,7 +15,7 @@ from main.util.common import doForEachPlosDoc, dataPath, readJsonFromData
 import re
 import json
 
-file = open(dataPath("relevant_document_data_plus_title.json"), "w")
+file = open(dataPath("relevant_document_data_plus_mendeley.json"), "w")
 
 def findRelevantData(doc):
     doi = doc['doi']
@@ -24,6 +24,7 @@ def findRelevantData(doc):
     citations = None # [ zeitpunkt, totalCitations ]
     mendeleyDisciplineList = None
     pubDate = doc['publication_date']
+    mendeleyReaders = None
     
     for source in doc['sources']:
         if source['name'] == 'twitter':
@@ -33,9 +34,10 @@ def findRelevantData(doc):
             if len(events) != 0:
                 stats = events['stats']
                 mendeleyDisciplineList = map(lambda x: x['name'], stats['discipline'])
+                mendeleyReaders = stats.get('readers', None)
         if source['name'] == 'crossref':
             citations = map(lambda x: [x['update_date'], x['total']], source['histories'])
-    jdoc = json.dumps([doi, title, pubDate, twitterData, citations, mendeleyDisciplineList])
+    jdoc = json.dumps([doi, title, pubDate, twitterData, citations, mendeleyDisciplineList, mendeleyReaders])
     file.write(jdoc + "\n")
 
 
@@ -63,6 +65,6 @@ def extractRelevantTwitterData(twitterSource):
 
     return tweets
 
-doForEachPlosDoc(findRelevantData)
+doForEachPlosDoc(findRelevantData, verbose=True)
 
 file.close()
