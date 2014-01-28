@@ -234,18 +234,24 @@ def mendeleyDisciplines():
         figurePath("mendeleyDisciplines.pdf")
     )
 
-def crossrefVsTwitter():
+def crossrefVsTwitter(yearBounds = [None, None], maxTweets = 300, maxCitations = 300):
     tweetVsCitationList = []
 
-    for doc in simpleDocs():
+    totalDocs = 0
+    for doc in filter(lambda doc: 
+        (not yearBounds[0] or doc.publicationDatetime().year>=yearBounds[0]) and 
+            (not yearBounds[1] or doc.publicationDatetime().year<=yearBounds[1]), 
+        simpleDocs()
+    ):
         tweetVsCitationList.append([len(doc.tweets), doc.citationTimeline[0].totalCitations])
+        totalDocs += 1
 
-    x, y = zip(*filter(lambda x: x[1]>0 and x[1]<300 and x[0]>0 and x[0]<300, tweetVsCitationList))
+    x, y = zip(*filter(lambda x: x[1]>0 and x[1]<maxCitations and x[0]>0 and x[0]<maxTweets, tweetVsCitationList))
     plt.figure()
     plt.scatter(x, y)
-    plt.title("Korrelation zwischen Tweets und Zitationen")
-    plt.ylabel("#Tweets (1-300)")
-    plt.xlabel("#Citations (1-300)")
+    plt.title("Korrelation zwischen Tweets und Zitationen (Papieren zwischen " + str(yearBounds[0]) + " und " + str(yearBounds[1]) + "; #Docs: " + str(totalDocs) + ")")
+    plt.ylabel("#Tweets (1-" + str(maxTweets) + ")")
+    plt.xlabel("#Citations (1-" + str(maxCitations) + ")")
 
     p = numpy.polyfit(x, y, 1)
     xTrend = range(min(x), max(x)+1)
@@ -332,7 +338,14 @@ def userCorrelationToDiscipline():
             print "\n\n"
 
 
-crossrefVsTwitter()
+# crossrefVsTwitter(yearBounds = [2008, 2008], maxTweets = 300, maxCitations = 300)
+# crossrefVsTwitter(yearBounds = [2009, 2009], maxTweets = 300, maxCitations = 300)
+# crossrefVsTwitter(yearBounds = [2010, 2010], maxTweets = 300, maxCitations = 300)
+# crossrefVsTwitter(yearBounds = [2011, 2011], maxTweets = 300, maxCitations = 300)
+# crossrefVsTwitter(yearBounds = [2012, 2012], maxTweets = 300, maxCitations = 300)
+# crossrefVsTwitter(yearBounds = [2013, 2013], maxTweets = 300, maxCitations = 300)
+# crossrefVsTwitter(yearBounds = [None, 2011], maxTweets = 300, maxCitations = 300)
+# crossrefVsTwitter(yearBounds = [None, None], maxTweets = 300, maxCitations = 300)
 # distFirstTweetToDoc()
 # userCorrelationToDiscipline()
 #num_tweets()
