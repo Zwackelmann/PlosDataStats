@@ -65,7 +65,7 @@ def doForEachPlosDoc(fun, maxDocs=None, verbose=False):
     else:
         raise BaseException
 
-simpleDocsFilename = "relevant_document_data2.json"
+simpleDocsFilename = "relevant_data_dtptcmr.json"
 simpleDocsPath = path.join(dataBasePath, simpleDocsFilename)
 def doForEachSimpleDoc(fun, maxDocs=None):
     """Document Structure:
@@ -94,16 +94,42 @@ def formatHist(bins, bounds, formatHint = 5):
     print (' ' * formatHint) + str(map(lambda x: ("%" + str(formatHint) + "d") % x, bins))
     print map(lambda x: ("%" + str(formatHint) + "d") % x, bounds)
 
+# from dateutil.parser import parse
+# import calendar
+
 class SimpleDoc:
     def __init__(self, docData):
         self.doi = docData[0]
-        self.publicationTimestamp = docData[1]
-        self.tweets = map(lambda tweetData: Tweet(tweetData), docData[2])
-        self.citationTimeline = map(lambda citationData: CitationDataPoint(citationData), docData[3])
-        self.mendeleyDisciplines = docData[4]
+        self.title = docData[1]
+        self.publicationTimestamp = docData[2]
+        self.tweets = map(lambda tweetData: Tweet(tweetData), docData[3])
+        self.citationTimeline = map(lambda citationData: CitationDataPoint(citationData), docData[4])
+        self.mendeleyDisciplines = docData[5]
+        self.mendeleyReaders = None
+        if len(docData) >= 7:
+            self.mendeleyReaders = docData[6]
     
     def publicationDatetime(self):
+        # return calendar.timegm(parse(self.publicationTimestamp).timetuple())
         return datetime.fromtimestamp(self.publicationTimestamp)
+
+    def cummulativeTwitterTimeline(self):
+        totalTweets = 0
+        timelinePoints = []
+
+        if len(self.tweets) != 0:
+            firstTweet = min(map(lambda tweet: tweet.timestamp, self.tweets))
+            if firstTweet > self.publicationTimestamp:
+                timelinePoints.append([self.publicationTimestamp, 0])
+                
+        for tweet in self.tweets:
+            totalTweets += 1
+            timelinePoints.append([tweet.timestamp, totalTweets])
+
+        maximumTimestampInDataset = 1379408980
+        timelinePoints.append([maximumTimestampInDataset, totalTweets])
+
+        return timelinePoints
 
 class Tweet:
     def __init__(self, tweetData):
@@ -116,6 +142,7 @@ class Tweet:
         return self.retweetUser != None
 
     def datetime(self):
+        # return calendar.timegm(parse(self.timestamp).timetuple())
         return datetime.fromtimestamp(self.timestamp)
 
 class CitationDataPoint:
@@ -124,6 +151,7 @@ class CitationDataPoint:
         self.totalCitations = citationData[1]
 
     def datetime(self):
+        # return calendar.timegm(parse(self.timestamp).timetuple())
         return datetime.fromtimestamp(self.timestamp)
 
 def simpleDocs():

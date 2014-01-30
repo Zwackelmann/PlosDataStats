@@ -6,6 +6,8 @@ import numpy
 import itertools
 from main.util.tex import simpleTabular, compileTex
 import os
+import math
+import itertools
 
 def publication_years():
     plt.figure()
@@ -17,21 +19,55 @@ def publication_years():
 
 def distFirstTweetToDoc():
     diffs = []
-    for doc in filter(lambda doc: len(doc.tweets) != 0, simpleDocs()):
+    for doc in filter(lambda doc: len(doc.tweets) != 0 and len(doc.tweets) < 5, simpleDocs()):
         pubTimestamp = doc.publicationTimestamp
         # firstTweetTimestamp = max([tweet.timestamp for tweet in doc.tweets])
-        tweetTimestamps = [tweet.timestamp-pubTimestamp for tweet in doc.tweets]
-
-        diffs.extend(tweetTimestamps)
+        diffs.extend([tweet.timestamp-pubTimestamp for tweet in doc.tweets])
 
     diffs = map(lambda x: x/60/60/24, diffs)
-    relBins, labels = pieData([
+
+    """relBins1, labels1 = pieData([
         [lambda x: x<=7, "1W"],
         [lambda x: x>7 and x<=30, "1M"],
         [lambda x: x>30 and x<=160, "1/2Y"],
         [lambda x: x>160 and x<=365, "1Y"],
         [lambda x: x>365, ">1Y"],
+    ], diffs1)"""
+    
+    relBins, labels = pieData([
+        [lambda x: x<=1, "1T"],
+        [lambda x: x>1 and x<=2, "2T"],
+        [lambda x: x>2 and x<=3, "3T"],
+        [lambda x: x>3 and x<=4, "4T"],
+        [lambda x: x>4 and x<=5, "5T"],
+        [lambda x: x>5 and x<=6, "6T"],
+        [lambda x: x>6 and x<=7, "7T"],
+        [lambda x: x>7 and x<=8, "8T"],
+        [lambda x: x>8 and x<=9, "9T"],
+        [lambda x: x>9 and x<=10, "10T"],
+        [lambda x: x>10 and x<=11, "11T"],
+        [lambda x: x>11 and x<=12, "12T"],
+        [lambda x: x>12 and x<=13, "13T"],
+        [lambda x: x>13 and x<=14, "14T"],
+        [lambda x: x>14 and x<=15, "15T"],
+        [lambda x: x>15 and x<=16, "16T"],
+        [lambda x: x>16 and x<=17, "17T"],
+        [lambda x: x>17 and x<=18, "18T"],
+        [lambda x: x>18 and x<=19, "19T"],
+        [lambda x: x>19 and x<=20, "20T"],
+        [lambda x: x>20 and x<=21, "21T"],
+        [lambda x: x>21 and x<=22, "22T"],
+        [lambda x: x>22 and x<=23, "23T"],
+        [lambda x: x>23 and x<=24, "24T"],
+        [lambda x: x>24 and x<=25, "25T"],
+        [lambda x: x>25 and x<=26, "26T"],
+        [lambda x: x>26 and x<=27, "27T"],
+        [lambda x: x>27 and x<=28, "28T"],
+        [lambda x: x>28 and x<=29, "29T"],
+        [lambda x: x>29 and x<=30, "30T"],
+        [lambda x: x>30, ">30T"]
     ], diffs)
+
 
     plt.figure()
     plt.pie(relBins, autopct='%1.1f%%', 
@@ -39,7 +75,7 @@ def distFirstTweetToDoc():
     plt.show()
 
 
-def num_tweets():
+def numTweets():
     plt.figure()
     
     numTweets = list(len(simpleDoc.tweets) for simpleDoc in simpleDocs())
@@ -258,6 +294,41 @@ def crossrefVsTwitter(yearBounds = [None, None], maxTweets = 300, maxCitations =
     yTrend = map(lambda x: numpy.polyval(p, x), xTrend)
     plt.plot(xTrend, yTrend, color='r')
 
+    plt.figtext(0.80, 0.05,  'korrelationskoeffizient: ' + str(korrelationskoeffizient(x, y)))
+
+    plt.show()
+
+def tweetVsMendeleyReaders(yearBounds = [None, None], maxTweets = 300, maxReaders = 300):
+    tweetVsMendeleyReaderList = []
+
+    totalDocs = 0
+    for doc in filter(lambda doc: 
+        (doc.mendeleyReaders != None and doc.mendeleyReaders<=maxReaders) and 
+            (doc.tweets != None and len(doc.tweets)<=maxTweets) and
+            (not yearBounds[0] or doc.publicationDatetime().year>=yearBounds[0]) and
+            (not yearBounds[1] or doc.publicationDatetime().year<=yearBounds[1]), 
+        simpleDocs()
+    ):
+        tweetVsMendeleyReaderList.append([len(doc.tweets), doc.mendeleyReaders])
+        totalDocs += 1
+
+    x, y = zip(*tweetVsMendeleyReaderList)
+    
+
+    plt.figure()
+
+    plt.scatter(x, y)
+    plt.title("Korrelation zwischen Tweets und Zitationen (Papieren zwischen " + str(yearBounds[0]) + " und " + str(yearBounds[1]) + "; #Docs: " + str(totalDocs) + ")")
+    plt.ylabel("#Tweets (1-" + str(maxTweets) + ")")
+    plt.xlabel("#Readers (1-" + str(maxReaders) + ")")
+
+    p = numpy.polyfit(x, y, 1)
+    xTrend = range(min(x), max(x)+1)
+    yTrend = map(lambda x: numpy.polyval(p, x), xTrend)
+    plt.plot(xTrend, yTrend, color='r')
+
+    plt.figtext(0.80, 0.05,  'korrelationskoeffizient: ' + str(korrelationskoeffizient(x, y)))
+
     plt.show()
 
 def userCorrelationToDiscipline():
@@ -337,17 +408,80 @@ def userCorrelationToDiscipline():
             print relCounts
             print "\n\n"
 
+def korrelationskoeffizient(x, y):
+    avgX = float(sum(x)) / len(x)
+    avgY = float(sum(y)) / len(y)
 
-# crossrefVsTwitter(yearBounds = [2008, 2008], maxTweets = 300, maxCitations = 300)
-# crossrefVsTwitter(yearBounds = [2009, 2009], maxTweets = 300, maxCitations = 300)
-# crossrefVsTwitter(yearBounds = [2010, 2010], maxTweets = 300, maxCitations = 300)
-# crossrefVsTwitter(yearBounds = [2011, 2011], maxTweets = 300, maxCitations = 300)
-# crossrefVsTwitter(yearBounds = [2012, 2012], maxTweets = 300, maxCitations = 300)
-# crossrefVsTwitter(yearBounds = [2013, 2013], maxTweets = 300, maxCitations = 300)
-# crossrefVsTwitter(yearBounds = [None, 2011], maxTweets = 300, maxCitations = 300)
-# crossrefVsTwitter(yearBounds = [None, None], maxTweets = 300, maxCitations = 300)
-# distFirstTweetToDoc()
-# userCorrelationToDiscipline()
-#num_tweets()
+    sumErrorProducts = 0
+    for i in range(0, len(x)):
+        sumErrorProducts += (x[i]-avgX)*(y[i]-avgY)
 
-# Bei Citations mal nur auf <2010 schauen
+    xSquareError = 0
+    for xi in x:
+        xSquareError += math.pow(xi-avgX, 2)
+
+    ySquareError = 0
+    for yi in y:
+        ySquareError += math.pow(yi-avgY, 2)
+
+    return sumErrorProducts / math.sqrt(xSquareError*ySquareError)
+
+def correlationsForQuartals():
+    quartals = [
+        [3, 2008],
+        [0, 2009], [1, 2009], [2, 2009], [3, 2009],
+        [0, 2010], [1, 2010], [2, 2010], [3, 2010],
+        [0, 2011], [1, 2011], [2, 2011], [3, 2011],
+        [0, 2012], [1, 2012], [2, 2012], [3, 2012],
+        [0, 2013], [1, 2013]
+    ]
+
+    def docInQuartal(doc, quartal):
+        if quartal[1] != doc.publicationDatetime().year:
+            return False
+        elif quartal[0] == 0:
+            return doc.publicationDatetime().month >=1 and doc.publicationDatetime().month<=3
+        elif quartal[0] == 1:
+            return doc.publicationDatetime().month >=4 and doc.publicationDatetime().month<=6
+        elif quartal[0] == 2:
+            return doc.publicationDatetime().month >=7 and doc.publicationDatetime().month<=9
+        elif quartal[0] == 3:
+            return doc.publicationDatetime().month >=10 and doc.publicationDatetime().month<=12
+        else:
+            raise ValueError("Argument quartal consists of a tuple [quartal, year] where quartal must be between 0 and 3")
+
+    allDocs = list(simpleDocs())
+    coefficients = []
+    for quartal in quartals:
+        docs = filter(lambda doc: docInQuartal(doc, quartal) and doc.mendeleyReaders != None, allDocs)
+        print len(docs)
+        x, y = zip(*map(lambda doc: [len(doc.tweets), doc.citationTimeline[0].totalCitations], docs))
+
+        coefficients.append(korrelationskoeffizient(x, y))
+
+    plt.figure()
+    plt.plot(range(0, len(quartals)), coefficients)
+    plt.show()
+
+def correlationTimeTweets():
+    x, y = zip(*map(lambda doc: [doc.publicationTimestamp, len(doc.tweets)], simpleDocs()))
+    print korrelationskoeffizient(x, y) # 0.082
+
+
+def alteringTweetStreamAfterFirstPeak():
+    return False
+    # return False
+
+def cummulativeTwitterPlots():
+    # twitterTimelines, publicationTimestamps = zip(*filter(lambda timelinePubTs: len(timelinePubTs[0]) != 0, map(lambda doc: [doc.cummulativeTwitterTimeline(), doc.publicationTimestamp], simpleDocs())))
+    twitterTimelines = filter(lambda tl: len(tl) != 0, map(lambda doc: map(lambda point: [point[0]-doc.publicationTimestamp, point[1]], doc.cummulativeTwitterTimeline()), simpleDocs()))
+
+    # twitterTimelines = filter(lambda tl: len(tl) < 20, twitterTimelines)
+    # twitterTimelines = filter(lambda tl: len(tl) > 50, twitterTimelines)
+    plt.figure()
+    for timeline in twitterTimelines:
+        x, y = zip(*timeline)
+        plt.plot(x, y)
+    
+    plt.show()
+
