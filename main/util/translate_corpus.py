@@ -1,10 +1,8 @@
 import json
+from main.util.common import simpleDocs
 
-f = open("relevant_data_dtptcmr.json", "w")
+f = open("relevant_data_dtptcmriiv.json", "w")
 for doc in simpleDocs():
-    doi = doc.doi
-    title = doc.title
-    pDate = doc.publicationDatetime()
     tweets = []
     for tweet in doc.tweets:
         tweetText = tweet.text
@@ -19,9 +17,17 @@ for doc in simpleDocs():
         totalCitations = citationTimepoint.totalCitations
         citationTimeline.append([timestamp, totalCitations])
 
-    mendeleyDisciplines = doc.mendeleyDisciplines
-    mendeleyReaders = doc.mendeleyReaders
-
-    f.write(json.dumps([doi, title, pDate, tweets, citationTimeline, mendeleyDisciplines, mendeleyReaders]) + "\n")
+    f.write(json.dumps([
+        doc.doi, 
+        doc.title, 
+        doc.publicationDatetime(), 
+        tweets, 
+        citationTimeline, 
+        doc.mendeleyDisciplines,
+        doc.mendeleyReaders,
+        doc.issn, 
+        doc.issue, 
+        doc.volume
+    ]) + "\n")
 
 f.close()

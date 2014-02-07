@@ -65,12 +65,12 @@ def doForEachPlosDoc(fun, maxDocs=None, verbose=False):
     else:
         raise BaseException
 
-simpleDocsFilename = "relevant_data_dtptcmr.json"
+simpleDocsFilename = "relevant_data_dtptcmriiv.json"
 simpleDocsPath = path.join(dataBasePath, simpleDocsFilename)
 def doForEachSimpleDoc(fun, maxDocs=None):
     """Document Structure:
-        [ [0]    [1]        [2]         [3]                [4]         ]
-        [ doi, pubDate, twitterData, citations, mendeleyDisciplineList ]
+        [ [0]  [1]     [2]        [3]         [4]               [5]                 [6]         [7]   [8]     [9] ]
+        [doi, title, pubDate, twitterData, citations, mendeleyDisciplineList, mendeleyReaders, issn, issue, volume]
 
         twitterData:
                      [      [0]      [1]                 [2]                         [3]    ]
@@ -79,6 +79,8 @@ def doForEachSimpleDoc(fun, maxDocs=None):
         citations:
                      [    [0]           [1]      ]
             list of: [ zeitpunkt, totalCitations ]
+
+        mendeleyDisciplineList: list of strings
 """
     lines = open(simpleDocsPath)
     count = 0
@@ -98,26 +100,32 @@ def formatHist(bins, bounds, formatHint = 5):
 # import calendar
 
 class SimpleDoc:
+    maximumTimestampInDataset = 1379408980
+
     def __init__(self, docData):
         self.doi = docData[0]
         self.title = docData[1]
         self.publicationTimestamp = docData[2]
         self.tweets = map(lambda tweetData: Tweet(tweetData), docData[3])
+        # TODO check if tweets are sorted in time and sort if not
         self.citationTimeline = map(lambda citationData: CitationDataPoint(citationData), docData[4])
+        # TODO check if citationTimeline are sorted in time and sort if not
         self.mendeleyDisciplines = docData[5]
         self.mendeleyReaders = None
-        if len(docData) >= 7:
-            self.mendeleyReaders = docData[6]
-    
+        self.mendeleyReaders = docData[6]
+        self.issn = docData[7]
+        self.issue = docData[8]
+        self.volume = docData[9]
+
     def publicationDatetime(self):
         # return calendar.timegm(parse(self.publicationTimestamp).timetuple())
         return datetime.fromtimestamp(self.publicationTimestamp)
 
-    def cummulativeTwitterTimeline(self):
+    def cummulativeTwitterTimeline(self, padding=True):
         totalTweets = 0
         timelinePoints = []
 
-        if len(self.tweets) != 0:
+        if padding and len(self.tweets) != 0:
             firstTweet = min(map(lambda tweet: tweet.timestamp, self.tweets))
             if firstTweet > self.publicationTimestamp:
                 timelinePoints.append([self.publicationTimestamp, 0])
@@ -126,10 +134,40 @@ class SimpleDoc:
             totalTweets += 1
             timelinePoints.append([tweet.timestamp, totalTweets])
 
-        maximumTimestampInDataset = 1379408980
-        timelinePoints.append([maximumTimestampInDataset, totalTweets])
+        if padding: 
+            maximumTimestampInDataset = 1379408980
+            timelinePoints.append([maximumTimestampInDataset, totalTweets])
 
         return timelinePoints
+
+    def numTweets(self):
+        return len(self.tweets)
+
+    def numTweetsBetweenRelative(self, lower=None, upper=None):
+        return len(filter(lambda tweet: 
+            (not lower or tweet.timestamp-self.publicationTimestamp>=lower) and
+            (not upper or tweet.timestamp-self.publicationTimestamp<=upper)
+        , self.tweets))
+
+    def numTweetsBetweenAbsolute(self, lower=None, upper=None):
+        return len(filter(lambda tweet: 
+            (not lower or tweet.timestamp>=lower) and
+            (not upper or tweet.timestamp<=upper)
+        , self.tweets))
+
+    def numCitations(self):
+        return max(map(lambda c: c.totalCitations, self.citationTimeline))
+
+    def timespan(self):
+        timestamps = map(lambda tweet: tweet.timestamp, self.tweets)
+        return max(timestamps) - min(timestamps)
+
+    def age(self):
+        maximumTimestampInDataset = 1379408980
+        return maximumTimestampInDataset-self.publicationTimestamp
+
+    def year(self):
+        return self.publicationDatetime().year
 
 class Tweet:
     def __init__(self, tweetData):
