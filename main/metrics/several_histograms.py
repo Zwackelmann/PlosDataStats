@@ -8,6 +8,7 @@ from main.util.tex import simpleTabular, compileTex
 import os
 import math
 import itertools
+import random
 
 def publication_years():
     plt.figure()
@@ -18,61 +19,93 @@ def publication_years():
     plt.show()
 
 def distFirstTweetToDoc():
-    diffs = []
-    for doc in filter(lambda doc: len(doc.tweets) != 0 and len(doc.tweets) < 5, simpleDocs()):
-        pubTimestamp = doc.publicationTimestamp
-        # firstTweetTimestamp = max([tweet.timestamp for tweet in doc.tweets])
-        diffs.extend([tweet.timestamp-pubTimestamp for tweet in doc.tweets])
+    allDocs = list(simpleDocs())
 
-    diffs = map(lambda x: x/60/60/24, diffs)
+    for param in range(20, 100):
+        diffs = []
 
-    """relBins1, labels1 = pieData([
-        [lambda x: x<=7, "1W"],
-        [lambda x: x>7 and x<=30, "1M"],
-        [lambda x: x>30 and x<=160, "1/2Y"],
-        [lambda x: x>160 and x<=365, "1Y"],
-        [lambda x: x>365, ">1Y"],
-    ], diffs1)"""
+        maximumTweetAge = 60*60*24*param
+        minimumTweetAge = 60*60*24*10
+        for doc in filter(lambda doc: len(doc.tweets) != 0 and doc.age() >= maximumTweetAge, allDocs):
+            pubTimestamp = doc.publicationTimestamp
+            # firstTweetTimestamp = max([tweet.timestamp for tweet in doc.tweets])
+            diffs.extend([tweet.timestamp-pubTimestamp for tweet in 
+                filter(
+                    lambda tweet: (tweet.timestamp-doc.publicationTimestamp) < maximumTweetAge and (tweet.timestamp-doc.publicationTimestamp) > minimumTweetAge,
+                    doc.tweets
+                )
+            ])
+
+        maxBins = 30
+        timeslot = (float(maximumTweetAge)-float(minimumTweetAge))/maxBins
+
+        def binNr2Bound(binNr):
+            return minimumTweetAge+(binNr*timeslot)
+
+        binConditions = map(
+            lambda binNr: [lambda x: x>binNr2Bound(binNr) and x<=binNr2Bound(binNr+1), str(binNr) + "X"],
+            range(0, maxBins)
+        )
+
+        # binConditions.append([lambda x: x>binNr2Bound(maxBins), ">" + str(maxBins-1) + str("X")])
+
+        diffBins, diffLabels = pieData(binConditions, diffs)
+        
+        distBinConditions = map(
+            lambda binNr: [lambda x: x==binNr, "X=" + str(binNr)],
+            range(0, maxBins)
+        )
+
+        def getBins(beta, binConditions):
+            s = map(lambda x: int(x), numpy.random.exponential(beta, 10000))
+            bins, labels = pieData(binConditions, s)
+            return bins
+
+        def binDiffs(bins1, bins2):
+            return sum(map((lambda (a, b): abs(a-b)), zip(bins1, bins2)))
+
+        def searchInRangeRec(minBeta, maxBeta, steps, depth, maxDepth):
+            minError = min(
+                map(lambda beta: [beta, binDiffs(getBins(beta, distBinConditions), diffBins)], numpy.arange(minBeta, maxBeta, steps)),
+                key = lambda x: x[1]
+            )
+
+            errorBelow = binDiffs(getBins(minError[0]-(float(steps)/2), distBinConditions), diffBins)
+            errorAbove = binDiffs(getBins(minError[0]+(float(steps)/2), distBinConditions), diffBins)
+
+            if depth==maxDepth:
+                return minError
+            elif errorBelow <= errorAbove:
+                x = searchInRangeRec(minError[0]-steps, minError[0], float(steps)/10, depth+1, maxDepth)
+                return x[0], x[1]
+            else:
+                x = searchInRangeRec(minError[0], minError[0]+steps, float(steps)/10, depth+1, maxDepth)
+                return x[0], x[1]
+
+        beta, error = searchInRangeRec(1, 10, 1, 0, 3)
+
+        print param, (error/maxBins)
+    # s = numpy.random.poisson(1.2, 10000)
+    # s = numpy.random.zipf(1.5, 10000)
+    # f = 3.0
+    # s = map(lambda x: (float(x)-(1+(random.random()/f)))*f, s)
+    # s.extend([0] * (100*60))
+
     
-    relBins, labels = pieData([
-        [lambda x: x<=1, "1T"],
-        [lambda x: x>1 and x<=2, "2T"],
-        [lambda x: x>2 and x<=3, "3T"],
-        [lambda x: x>3 and x<=4, "4T"],
-        [lambda x: x>4 and x<=5, "5T"],
-        [lambda x: x>5 and x<=6, "6T"],
-        [lambda x: x>6 and x<=7, "7T"],
-        [lambda x: x>7 and x<=8, "8T"],
-        [lambda x: x>8 and x<=9, "9T"],
-        [lambda x: x>9 and x<=10, "10T"],
-        [lambda x: x>10 and x<=11, "11T"],
-        [lambda x: x>11 and x<=12, "12T"],
-        [lambda x: x>12 and x<=13, "13T"],
-        [lambda x: x>13 and x<=14, "14T"],
-        [lambda x: x>14 and x<=15, "15T"],
-        [lambda x: x>15 and x<=16, "16T"],
-        [lambda x: x>16 and x<=17, "17T"],
-        [lambda x: x>17 and x<=18, "18T"],
-        [lambda x: x>18 and x<=19, "19T"],
-        [lambda x: x>19 and x<=20, "20T"],
-        [lambda x: x>20 and x<=21, "21T"],
-        [lambda x: x>21 and x<=22, "22T"],
-        [lambda x: x>22 and x<=23, "23T"],
-        [lambda x: x>23 and x<=24, "24T"],
-        [lambda x: x>24 and x<=25, "25T"],
-        [lambda x: x>25 and x<=26, "26T"],
-        [lambda x: x>26 and x<=27, "27T"],
-        [lambda x: x>27 and x<=28, "28T"],
-        [lambda x: x>28 and x<=29, "29T"],
-        [lambda x: x>29 and x<=30, "30T"],
-        [lambda x: x>30, ">30T"]
-    ], diffs)
+    #binConditions2.append([lambda x: x>maxBins, ">" + str(maxBins-1) + str("X")])
 
+
+    """expDistData = map(lambda x: int(x), numpy.random.exponential(beta, 10000))
+    expDistBins, expDistLabels = pieData(distBinConditions, expDistData)
 
     plt.figure()
-    plt.pie(relBins, autopct='%1.1f%%', 
-        startangle=90, labels=labels)
-    plt.show()
+    plt.pie(diffBins, autopct='%1.1f%%', 
+        startangle=90, labels=diffLabels)
+    plt.figure()
+
+    plt.pie(expDistBins, autopct='%1.1f%%', 
+        startangle=90, labels=expDistLabels)
+    plt.show()"""
 
 
 def numTweets():
@@ -270,7 +303,7 @@ def mendeleyDisciplines():
         figurePath("mendeleyDisciplines.pdf")
     )
 
-def crossrefVsTwitter(yearBounds = [None, None], maxTweets = 300, maxCitations = 300):
+def crossrefVsTwitter(yearBounds = [None, None], maxTweets = 300, maxCitations = 300, minTweetAge = None, maxTweetAge = None):
     tweetVsCitationList = []
 
     totalDocs = 0
@@ -279,9 +312,18 @@ def crossrefVsTwitter(yearBounds = [None, None], maxTweets = 300, maxCitations =
             (not yearBounds[1] or doc.publicationDatetime().year<=yearBounds[1]), 
         simpleDocs()
     ):
-        tweetVsCitationList.append([len(doc.tweets), doc.citationTimeline[0].totalCitations])
+        tweetVsCitationList.append(
+            [
+                len(filter(lambda tweet: 
+                    (not minTweetAge or (tweet.timestamp-doc.publicationTimestamp) >= minTweetAge) and
+                    (not maxTweetAge or (tweet.timestamp-doc.publicationTimestamp) <= maxTweetAge), 
+                    doc.tweets)), 
+                doc.citationTimeline[0].totalCitations
+            ]
+        )
         totalDocs += 1
 
+    # tweetVsCitationList = sorted(tweetVsCitationList, key=lambda tc: tc[1], reverse=True)[:100]
     x, y = zip(*filter(lambda x: x[1]>0 and x[1]<maxCitations and x[0]>0 and x[0]<maxTweets, tweetVsCitationList))
     plt.figure()
     plt.scatter(x, y)
@@ -469,8 +511,28 @@ def correlationTimeTweets():
 
 
 def alteringTweetStreamAfterFirstPeak():
-    return False
-    # return False
+    relativeTweetDiffAfter1WeekAndTotal = map(
+        lambda doc: 
+            float(doc.numTweets()) / doc.numTweetsBetweenRelative(None, 60*60*24*7),
+            filter(lambda doc: doc.numTweetsBetweenRelative(None, 60*60*24*7) >= 5, simpleDocs())
+    )
+
+    relBins, labels = pieData([
+        [lambda x: x==1.0, "+0%"], 
+        [lambda x: x>1.0 and x<=1.1, "+0-10%"],
+        [lambda x: x>1.1 and x<=1.2, "+10-20%"],
+        [lambda x: x>1.2 and x<=1.3, "+20-30%"],
+        [lambda x: x>1.3 and x<=1.4, "+30-40%"],
+        [lambda x: x>1.4 and x<=1.5, "+40-50%"],
+        [lambda x: x>1.5, ">50%"]
+    ], relativeTweetDiffAfter1WeekAndTotal)
+
+    plt.figure()
+    plt.pie(relBins, autopct='%1.1f%%', 
+        startangle=90, labels=labels)
+
+    plt.title("Relative Anzahl Tweets im Vergleich zu Anzahl Tweets nach einer Woche")
+    plt.show()
 
 def cummulativeTwitterPlots():
     # twitterTimelines, publicationTimestamps = zip(*filter(lambda timelinePubTs: len(timelinePubTs[0]) != 0, map(lambda doc: [doc.cummulativeTwitterTimeline(), doc.publicationTimestamp], simpleDocs())))
@@ -485,3 +547,140 @@ def cummulativeTwitterPlots():
     
     plt.show()
 
+def groupByJournalAndVolume():
+    issns = { }
+    docs = list(simpleDocs())
+    for doc in docs:
+        issns[doc.issn] = issns.get(doc.issn, 0) + 1
+
+    validIssns = map(lambda kv: kv[0], filter(lambda item: item[1]>5 and item[0] != None, issns.items()))
+
+    groups = { }
+    for doc in docs:
+        if doc.issn in validIssns:
+            groupList = groups.get((doc.issn, doc.volume), [])
+            # groupList = groups.get(doc.issn, [])
+            groupList.append(doc)
+            groups[(doc.issn, doc.volume)] = groupList
+            # groups[doc.issn] = groupList
+
+    validGroups = filter(lambda group: len(group[1]) > 5, groups.items())
+    # validGroups = groups.items()
+    
+    correlationValues = []    
+    for ident, docs in validGroups:
+        docTweets = map(lambda doc: doc.numTweets(), docs)
+        docCitations = map(lambda doc: doc.numCitations(), docs)
+        korr = None
+
+        # docTweetCitationRatios = map(lambda doc: [float(doc.numTweets()) / doc.numCitations() if doc.numCitations() != 0 else float('nan')], docs)
+
+        maxYear = max(map(lambda doc: doc.publicationDatetime().year, docs))
+        minYear = min(map(lambda doc: doc.publicationDatetime().year, docs))
+
+        yearRange = None
+        if maxYear == minYear:
+            yearRange = str(minYear)
+        else:
+            yearRange = str(minYear) + "-" + str(maxYear)
+
+        try:
+            korr = "%2.3f" % korrelationskoeffizient(docTweets, docCitations)
+        except ZeroDivisionError:
+            korr = "NaN"
+            
+        # correlationValues.append([ident[0], ident[1], len(docs), "%2.2f" % numpy.mean(docTweets), "%2.2f" % numpy.std(docTweets), korr, yearRange])
+        correlationValues.append([ident[0], ident[1], len(docs), "%2.2f" % numpy.mean(docTweets), "%2.2f" % numpy.mean(docCitations), "%2.2f" % (float(numpy.sum(docTweets))/numpy.sum(docCitations)),  yearRange])
+        # correlationValues.append([ident, len(docs), "%2.2f" % numpy.mean(docTweets), "%2.2f" % numpy.std(docTweets), korr])
+
+    correlationValues = sorted(correlationValues, key=lambda x: x[0])
+
+    compileTex(
+        # simpleTabular(["ISSN", "Volume", "\\#Docs", "AVG Tweets", "StdDev", "korr", "Years"], correlationValues, orientation="llrrrrl"),
+        simpleTabular(["ISSN", "Volume", "\\#Docs", "AVG T", "AVG C", "T/C", "Years"], correlationValues, orientation="llrrrrl"),
+        # simpleTabular(["ISSN", "\\#Docs", "AVG Tweets", "StdDev", "korr", "Years"], correlationValues, orientation="lrrrrl"),
+        figurePath("correlationsInJournals2.pdf")
+    )
+
+def exponentialTest(doc, referencePoint = 3):
+    timeSlot = 60*60*24*2
+
+    numTweetsInFirstTimeslot = doc.numTweetsBetweenRelative(None, 1*timeSlot)
+    numTweetsAtReferencePoint = doc.numTweetsBetweenRelative(None, (referencePoint+1)*timeSlot) - numTweetsInFirstTimeslot
+    
+    x, y = zip(
+        *filter(
+            lambda timePoint: timePoint[0]>0,
+            map(
+                lambda timePoint: [
+                    (timePoint[0]-doc.publicationTimestamp)/timeSlot, 
+                    timePoint[1]-numTweetsInFirstTimeslot
+                ],
+                doc.cummulativeTwitterTimeline(padding=False)
+            )
+        )
+    )
+    plt.figure()
+    plt.plot(x, y)
+
+    lam = 0.333333333
+    expFunAtReferencePoint = 1-numpy.exp(-lam*referencePoint)
+    factor = numTweetsAtReferencePoint / expFunAtReferencePoint
+
+    x2 = range(0, doc.timespan()/timeSlot)
+    y2 = map(lambda xx: (1-numpy.exp(-lam*xx))*factor, x2)
+    plt.plot(x2, y2)
+
+    plt.show()
+
+from scipy import stats
+
+def findDensity():
+    allDocs = list(simpleDocs())
+    #maximumDocAge = 60*60*24*300
+    maximumTweetAge = 60*60*24*300
+    minimumTweetAge = 60*60*24*3
+    
+    consideredDocs = filter(lambda doc: len(doc.tweets) != 0 and doc.year() == 2012, allDocs)
+    print "numDocs: " + str(len(consideredDocs))
+
+    diffs = [tweet.timestamp-doc.publicationTimestamp for doc in consideredDocs for tweet in doc.tweets ]
+    diffs = filter(lambda diff: minimumTweetAge <= diff <= maximumTweetAge, diffs)
+    diffs = map(lambda x: float(x)/(60*60*24*2), diffs)
+    print "numTweets: " + str(len(diffs))
+
+    kernel = stats.gaussian_kde(diffs)
+    xmin = min(diffs)
+    xmax = max(diffs)
+    numTweets = len(diffs)
+    xPoints = numpy.arange(xmin, xmax, (xmax-xmin)/1000)
+    yPoints = map(lambda x: kernel(x), xPoints)
+
+    # exp-fun
+    plt.hist(diffs, bins=100, normed=True)
+    plt.plot(xPoints, yPoints)
+
+    lam = 1.0/6
+    randomTweetTimes = []
+    randomTweetTimes.extend(numpy.random.exponential(1.0/lam, (numTweets*80)/100))
+    randomTweetTimes.extend(map(lambda r: r*((300-3)/2), numpy.random.random((numTweets*20)/100)))
+
+    plt.figure()
+    plt.hist(randomTweetTimes, bins=100, normed=True)
+    plt.y
+    plt.plot(xPoints, yPoints)
+    # yExp = map(lambda xx: (1-numpy.exp(-lam*xx)), xPoints)
+    #yExp = map(lambda xx: lam*numpy.exp(-lam*xx), xPoints)
+    #plt.plot(xPoints, yExp)
+
+    plt.show()
+
+def inLinkQuality():
+    return False
+
+# crossrefVsTwitter(yearBounds=[2012, 2012], minTweetAge=60*60*24*30)
+# print korrelationskoeffizient([1, 2, 2, 3, 3, 4], [3, 4, 2, 3, 1, 2])
+# print numpy.corrcoef([1, 2, 2, 3, 3, 4], [3, 4, 2, 3, 1, 2])
+# groupByJournalAndVolume()
+# alteringTweetStreamAfterFirstPeak()
+# correlationTimeTweets() # 0.082

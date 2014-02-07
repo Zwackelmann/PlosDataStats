@@ -69,7 +69,9 @@ def pieData(binDescriptions, x):
                 bins[i] += 1
 
     total = sum(bins)
+    relBins = 0.0
     relBins = map(lambda x: float(x)*100 / total, bins)
+
     labels = map(lambda x: x[0][1] + '(' + str(x[1]) + ')', zip(binDescriptions, bins))
 
     return relBins, labels

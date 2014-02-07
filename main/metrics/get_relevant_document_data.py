@@ -40,7 +40,6 @@ def findRelevantData(doc):
     jdoc = json.dumps([doi, title, pubDate, twitterData, citations, mendeleyDisciplineList, mendeleyReaders])
     file.write(jdoc + "\n")
 
-
 retweetPattern = re.compile("^RT @([^:]*): (.*)$")
 
 def extractRelevantTwitterData(twitterSource):
