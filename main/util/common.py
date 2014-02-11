@@ -4,6 +4,8 @@ from os import path
 from datetime import datetime
 import string 
 import numpy
+import time
+import calendar
 
 relativeDataPath = "data"
 relativeFigurePath = "figures"
@@ -112,6 +114,10 @@ def readIssnData():
 
 def filterDigits(s):
     return filter(lambda c: c in string.digits, s)
+
+def yearMonthDay2Timestamp(year, month=1, day=1):
+    dt = datetime(year=year, month=month, day=day)
+    return time.mktime(dt.timetuple())
 
 class SimpleDoc:
     maximumTimestampInDataset = 1379408980
@@ -234,6 +240,43 @@ class SimpleDoc:
     def readCorpus():
         lines = open(simpleDocsPath)
         return [SimpleDoc(json.loads(line)) for line in lines]
+
+    @staticmethod
+    def getallBetween(lowerBound = None, upperBound = None):
+        if type(lowerBound) is int:
+            lowerBoundTimestamp = yearMonthDay2Timestamp(year=lowerBound)
+        elif lowerBound is None:
+            lowerBoundTimestamp = None
+        else:
+            lowerBoundTimestamp = yearMonthDay2Timestamp(*lowerBound)
+        
+        if upperBound == None:
+            upperBoundTimestamp = None
+        elif type(upperBound) is int:
+            upperBoundTimestamp = yearMonthDay2Timestamp(year=upperBound+1, month=1, day=1)
+        elif len(upperBound) == 1 or (len(upperBound) == 2 and upperBound[1] == 12):
+            # get the timestamp of the first day in next year
+            upperBoundTimestamp = yearMonthDay2Timestamp(year=upperBound[0]+1, month=1, day=1)
+        elif len(upperBound) == 2:
+            # get the timestamp of the first day in next month
+            year = upperBound[0]
+            month = upperBound[1]
+            upperBoundTimestamp = yearMonthDay2Timestamp(year=year, month=month+1, day=1)
+        elif len(upperBound) == 3:
+            year = upperBound[0]
+            month = upperBound[1]
+            day = upperBound[2]
+
+            upperBoundTimestamp = yearMonthDay2Timestamp(year=year, month=month, day=day)
+        else:
+            raise ValueError("Submitted an invalid upperBound: " + str(upperBound))
+
+        return filter(
+            lambda doc: 
+                (not lowerBoundTimestamp or doc.publicationTimestamp >= lowerBoundTimestamp) and
+                (not upperBoundTimestamp or doc.publicationTimestamp < upperBoundTimestamp),
+            SimpleDoc.getall()
+        )
 
 class Tweet:
     def __init__(self, tweetData):
