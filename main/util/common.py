@@ -65,7 +65,7 @@ def doForEachPlosDoc(fun, maxDocs=None, verbose=False):
 
                 fun(docMetadata)
     else:
-        raise BaseException
+        raise BaseException("not running on TBDB")
 
 simpleDocsFilename = "relevant_document_data.json"
 simpleDocsPath = path.join(dataBasePath, simpleDocsFilename)
