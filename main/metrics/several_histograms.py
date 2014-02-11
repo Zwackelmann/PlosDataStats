@@ -14,7 +14,7 @@ import json
 
 def publication_years():
     plt.figure(num=None, figsize=(8, 4), dpi=80, facecolor='w', edgecolor='k')
-    publicationYears = list(simpleDoc.publicationDatetime().year for simpleDoc in SimpleDoc.getall())
+    publicationYears = list(simpleDoc.publicationDatetime().year for simpleDoc in SimpleDoc.getallBetween(None, None))
     histDisc(plt, publicationYears, width = 0.5)
     # plt.savefig(figurePath("publication_years.png"))
     plt.tight_layout()
@@ -830,4 +830,4 @@ def rankCorrelation():
     print "p value: " + str(pValue)
 
 
-
+publication_years()
