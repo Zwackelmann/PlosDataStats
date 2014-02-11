@@ -32,11 +32,72 @@ def findRelevantData(doc):
     volume = None
     pdfViews = None
     htmlViews = None
+    citeULikeShares = None
+    citeULikeTotal = None
+    connoteaCitations = None
+    connoteaTotal = None
+    natureCitations = None
+    natureTotal = None
+    postgenomicCitations = None
+    postgenomicTotal = None
+    pubmedCitations = None
+    pubmedTotal = None
+    scopusCitations = None
+    scopusTotal = None
+    pmcPdf = None
+    pmcHtml = None
+    facebookShares = None
+    facebookComments = None
+    facebookLikes = None
+    facebookTotal = None
+    mendeleyGroups = None
+    mendeleyShares = None
+    mendeleyTotal = None
+    relativemetricTotal = None
 
     for source in doc['sources']:
+        if source['name'] == 'citeulike':
+            metrics = source['metrics']
+            citeULikeShares = metrics['shares']
+            citeULikeTotal = metrics['total']
+        if source['name'] == 'connotea':
+            metrics = source['metrics']
+            connoteaCitatinos = metrics['citations']
+            connoteaTotal = metrics['total']
+        if source['name'] == 'nature':
+            metrics = source['metrics']
+            natureCitatinos = metrics['citations']
+            natureTotal = metrics['total']
+        if source['name'] == 'postgenomic':
+            metrics = source['metrics']
+            postgenomicCitatinos = metrics['citations']
+            postgenomicTotal = metrics['total']
+        if source['name'] == 'pubmed':
+            metrics = source['metrics']
+            pubmedCitatinos = metrics['citations']
+            pubmedTotal = metrics['total']
+        if source['name'] == 'scopus':
+            metrics = source['metrics']
+            scopusCitatinos = metrics['citations']
+            scopusTotal = metrics['total']
+        if source['name'] == 'pmc':
+            metrics = source['metrics']
+            pmcPdf = metrics['pdf']
+            pmcHtml = metrics['html']
+        if source['name'] == 'facebook':
+            metrics = source['metrics']
+            facebookShares = metrics['shares']
+            facebookComments = metrics['comments']
+            facebookLikes = metrics['likes']
+            facebookTotal = metrics['total']
         if source['name'] == 'twitter':
             twitterData = extractRelevantTwitterData(source)
         if source['name'] == 'mendeley':
+            metrics = source['metrics']
+            mendeleyGroups = metrics['groups']
+            mendeleyShares = metrics['shares']
+            mendeleyTotal = metrics['total']
+
             events = source['events']
             if len(events) != 0:
                 stats = events['stats']
@@ -63,8 +124,12 @@ def findRelevantData(doc):
             if counterMetrics:
                 pdfViews = counterMetrics.get('pdf', None)
                 htmlViews = counterMetrics.get('html', None)
+        if source['name'] == 'relativemetric':
+            metrics = source['metrics']
+            relativemetricTotal = metrics['total']
 
-    jdoc = json.dumps([doi, title, timestr2timestamp(pubDate), twitterData, citationTimeline, citations, mendeleyDisciplineList, mendeleyReaders, issn, issue, volume, pdfViews, htmlViews])
+
+    jdoc = json.dumps([doi, title, timestr2timestamp(pubDate), twitterData, citationTimeline, citations, mendeleyDisciplineList, mendeleyReaders, issn, issue, volume, pdfViews, htmlViews, citeULikeShares, citeULikeTotal, connoteaCitations, connoteaTotal, natureCitations, natureTotal, postgenomicCitations, postgenomicTotal, pubmedCitations, pubmedTotal, scopusCitations, scopusTotal, pmcPdf, pmcHmtl, facebookShares, facebookComments, facebookLikes, facebookTotal, mendeleyGroups, mendeleyShares, mendeleyTotal, relativemetricTotal])
     file.write(jdoc + "\n")
 
 retweetPattern = re.compile("^RT @([^:]*): (.*)$")
