@@ -1,25 +1,27 @@
 import matplotlib.pyplot as plt
-from main.util.common import simpleDocs, dataPath, figurePath, groupCount, writeJsonToData, readJsonFromData, formatHist
+from main.util.common import dataPath, figurePath, groupCount, writeJsonToData, readJsonFromData, formatHist, twitterHorizonDocs, User, SimpleDoc
 from matplotlib import ticker
-from main.util.plotting import histDisc, hist, barPlot, pieData
+from main.util.plotting import histDisc, hist, barPlot, pieData, paperFigure
 import numpy
+import scipy as sp
 import itertools
 from main.util.tex import simpleTabular, compileTex
 import os
 import math
 import itertools
 import random
+import json
 
 def publication_years():
-    plt.figure()
-
-    publicationYears = list(simpleDoc.publicationDatetime().timetuple()[0] for simpleDoc in simpleDocs())
-    histDisc(plt, publicationYears)
-    plt.savefig(figurePath("publication_years.png"))
+    plt.figure(num=None, figsize=(8, 4), dpi=80, facecolor='w', edgecolor='k')
+    publicationYears = list(simpleDoc.publicationDatetime().year for simpleDoc in SimpleDoc.getall())
+    histDisc(plt, publicationYears, width = 0.5)
+    # plt.savefig(figurePath("publication_years.png"))
+    plt.tight_layout()
     plt.show()
 
 def distFirstTweetToDoc():
-    allDocs = list(simpleDocs())
+    allDocs = list(SimpleDoc.getall())
 
     for param in range(20, 100):
         diffs = []
@@ -111,7 +113,7 @@ def distFirstTweetToDoc():
 def numTweets():
     plt.figure()
     
-    numTweets = list(len(simpleDoc.tweets) for simpleDoc in simpleDocs())
+    numTweets = list(len(simpleDoc.tweets) for simpleDoc in SimpleDoc.getall())
     labels, values = hist(numTweets, [1, 2, 5, 10, 20, 50, 100, 500, 1000])
     barPlot(plt, labels, values)
     plt.show()
@@ -120,7 +122,7 @@ def userHist():
     plt.figure()
 
     users = []
-    for doc in simpleDocs():
+    for doc in SimpleDoc.getall():
         for tweet in doc.tweets:
             users.append(tweet.user)
 
@@ -137,7 +139,7 @@ def topUsers():
     plt.figure()
 
     users = []
-    for doc in simpleDocs():
+    for doc in SimpleDoc.getall():
         for tweet in doc.tweets:
             users.append(tweet.user)
 
@@ -155,7 +157,7 @@ def numRetweets():
     numNormalTweets = 0
     numRetweets = 0
 
-    for doc in simpleDocs():
+    for doc in SimpleDoc.getall():
         for tweet in doc.tweets:
             if(tweet.isRetweet()):
                 numRetweets += 1
@@ -176,7 +178,7 @@ def numRetweets():
 def removeDoubleUsersAbsolute():
     l = [ ]
 
-    for doc in simpleDocs():
+    for doc in SimpleDoc.getall():
         tweetUsers = map(lambda x: x.user, doc.tweets)
         if len(tweetUsers) >= 1:
             l.append([len(tweetUsers), len(set(tweetUsers))])
@@ -206,7 +208,7 @@ def removeDoubleUsersAbsolute():
 def removeDoubleUsersRelative():
     l = [ ]
 
-    for doc in simpleDocs():
+    for doc in SimpleDoc.getall():
         tweetUsers = map(lambda x: x.user, doc.tweets)
         if len(tweetUsers) >= 1:
             l.append([len(tweetUsers), len(set(tweetUsers))])
@@ -230,7 +232,7 @@ def removeDoubleUsersRelative():
 def removeRetweetsAbsolute():
     l = [ ]
 
-    for doc in simpleDocs():
+    for doc in SimpleDoc.getall():
         if len(doc.tweets) >= 1:
             numNormalTweets = sum(1 for tweet in doc.tweets if not tweet.isRetweet())
             numRetweets = sum(1 for tweet in doc.tweets if tweet.isRetweet())
@@ -262,7 +264,7 @@ def removeRetweetsAbsolute():
 def removeRetweetsRelative():
     l = [ ]
 
-    for doc in simpleDocs():
+    for doc in SimpleDoc.getall():
         if len(doc.tweets) >= 1:
             numNormalTweets = sum(1 for tweet in doc.tweets if not tweet.isRetweet())
             numRetweets = sum(1 for tweet in doc.tweets if tweet.isRetweet())
@@ -286,58 +288,93 @@ def removeRetweetsRelative():
     plt.show()
 
 def mendeleyDisciplines():
-    l = [ ]
+    def generalCondition(doc):
+        time = doc.publicationDatetime()
+        return ( 
+                (time.year == 2012 and time.month >= 6 and time.month <= 8) or 
+                (time.year > 2012) 
+            ) and doc.mendeleyDisciplines != None
 
-    totaldocs = 0
-    for doc in simpleDocs():
-        totaldocs += 1
-        if doc.mendeleyDisciplines:
-            for d in doc.mendeleyDisciplines:
-                l.append(d)
+    def domainDocs(domain):
+        return [doc for doc in consideredDocs if generalCondition(doc) and domain in doc.mendeleyDisciplines]
 
-    discSorted = sorted(groupCount(l), key=lambda x: x[1], reverse=True)
-    discSorted2 = map(lambda x: [x[0], x[1], ("%2.2f" % (float(x[1])*100/totaldocs)) + "\\%"], discSorted)
+    consideredDocs = list(filter(lambda doc: generalCondition(doc), SimpleDoc.getall()))
+    totalDocs = len(consideredDocs)
+
+    distinctDomains = set()
+    for doc in consideredDocs:
+        distinctDomains |= set(doc.mendeleyDisciplines)
+
+    domainData = []
+    for domain in distinctDomains:
+        d = domainDocs(domain)
+        numDocs = len(d)
+        meanTweets = numpy.mean([doc.numTweets() for doc in d])
+
+        domainData.append((domain, numDocs, ("%2.2f" % (float(numDocs)*100 / totalDocs)) + "\\%", "%2.2f" % meanTweets ))
+
+    domainDataSorted = sorted(domainData, key=lambda x: x[1], reverse=True)
 
     compileTex(
-        simpleTabular(["Disziplin", "\\#Dokumente", "Anteil"], discSorted2, orientation="lrr"),
-        figurePath("mendeleyDisciplines.pdf")
+        simpleTabular(["Disziplin", "\\#Dokumente", "Anteil", "AvgTweets"], domainDataSorted, orientation="lrrr"),
+        figurePath("mendeleyDisciplines2.pdf")
     )
 
-def crossrefVsTwitter(yearBounds = [None, None], maxTweets = 300, maxCitations = 300, minTweetAge = None, maxTweetAge = None):
+def crossrefVsTwitter(yearBounds = [None, None], minTweetAge = None, maxTweetAge = None):
     tweetVsCitationList = []
+    minTweetAge = 60*60*24*0
+    maxTweetAge = 60*60*24*100
 
     totalDocs = 0
-    for doc in filter(lambda doc: 
-        (not yearBounds[0] or doc.publicationDatetime().year>=yearBounds[0]) and 
-            (not yearBounds[1] or doc.publicationDatetime().year<=yearBounds[1]), 
-        simpleDocs()
+    totalTweets = 0
+    nullWeights = 0
+    nonNullWeights = 0
+    for doc in filter(
+        lambda doc: 
+            (doc.publicationDatetime().year==2012 and 
+            doc.publicationDatetime().month>=6 and doc.publicationDatetime().month<=8),
+        SimpleDoc.getall()
     ):
-        tweetVsCitationList.append(
-            [
-                len(filter(lambda tweet: 
-                    (not minTweetAge or (tweet.timestamp-doc.publicationTimestamp) >= minTweetAge) and
-                    (not maxTweetAge or (tweet.timestamp-doc.publicationTimestamp) <= maxTweetAge), 
-                    doc.tweets)), 
-                doc.citationTimeline[0].totalCitations
-            ]
-        )
+        docsTweets = filter(lambda tweet: 
+            (not minTweetAge or (tweet.timestamp-doc.publicationTimestamp) >= minTweetAge) and
+            (not maxTweetAge or (tweet.timestamp-doc.publicationTimestamp) <= maxTweetAge), 
+            doc.tweets)
+        
+        def userWeight(tweet):
+            user = tweet.user()
+            return None if user is None else user.weight()
+
+        userWeights = map(lambda tweet: userWeight(tweet), docsTweets)
+
+        nullWeights += sum((1 for weight in userWeights if weight is None))
+        nonNullWeights += sum((1 for weight in userWeights if not weight is None))
+
+        tweetVsCitationList.append([doc.numCitations(), 0 if len(userWeights) == 0 else sum(filter(lambda weight: weight != None, userWeights))])
         totalDocs += 1
+        totalTweets += len(docsTweets)
+
+    print totalDocs
+    print totalTweets
+    print float(nullWeights) / (nullWeights+nonNullWeights)
 
     # tweetVsCitationList = sorted(tweetVsCitationList, key=lambda tc: tc[1], reverse=True)[:100]
-    x, y = zip(*filter(lambda x: x[1]>0 and x[1]<maxCitations and x[0]>0 and x[0]<maxTweets, tweetVsCitationList))
-    plt.figure()
+    x, y = zip(*tweetVsCitationList)
+    paperFigure(plt)
     plt.scatter(x, y)
-    plt.title("Korrelation zwischen Tweets und Zitationen (Papieren zwischen " + str(yearBounds[0]) + " und " + str(yearBounds[1]) + "; #Docs: " + str(totalDocs) + ")")
-    plt.ylabel("#Tweets (1-" + str(maxTweets) + ")")
-    plt.xlabel("#Citations (1-" + str(maxCitations) + ")")
+    # plt.title("Korrelation zwischen Tweets und Zitationen (Papieren zwischen " + str(yearBounds[0]) + " und " + str(yearBounds[1]) + "; #Docs: " + str(totalDocs) + ")")
+    plt.ylabel("#Tweets")
+    plt.xlabel("#Citations")
+    #plt.xlim((0,200))
+    #plt.ylim((0,30))
 
     p = numpy.polyfit(x, y, 1)
     xTrend = range(min(x), max(x)+1)
     yTrend = map(lambda x: numpy.polyval(p, x), xTrend)
     plt.plot(xTrend, yTrend, color='r')
 
-    plt.figtext(0.80, 0.05,  'korrelationskoeffizient: ' + str(korrelationskoeffizient(x, y)))
-
+    # plt.figtext(0.80, 0.05,  'korrelationskoeffizient: ' + str(korrelationskoeffizient(x, y)))
+    print 'korrelationskoeffizient: ' + str(korrelationskoeffizient(x, y))
+    plt.tight_layout()
     plt.show()
 
 def tweetVsMendeleyReaders(yearBounds = [None, None], maxTweets = 300, maxReaders = 300):
@@ -349,7 +386,7 @@ def tweetVsMendeleyReaders(yearBounds = [None, None], maxTweets = 300, maxReader
             (doc.tweets != None and len(doc.tweets)<=maxTweets) and
             (not yearBounds[0] or doc.publicationDatetime().year>=yearBounds[0]) and
             (not yearBounds[1] or doc.publicationDatetime().year<=yearBounds[1]), 
-        simpleDocs()
+        SimpleDoc.getall()
     ):
         tweetVsMendeleyReaderList.append([len(doc.tweets), doc.mendeleyReaders])
         totalDocs += 1
@@ -373,6 +410,35 @@ def tweetVsMendeleyReaders(yearBounds = [None, None], maxTweets = 300, maxReader
 
     plt.show()
 
+def tweetVsViewCounts():
+    tweetVsViewCountList = []
+
+    totalDocs = 0
+    for doc in twitterHorizonDocs():
+        if(len(doc.tweets) != None and doc.citationWeight(method = "max") != None):
+            tweetVsViewCountList.append([doc.citationWeight(method = "max"), doc.numTweets()])
+            totalDocs += 1
+
+    x, y = zip(*tweetVsViewCountList)
+
+    plt.figure()
+
+    plt.scatter(x, y)
+    plt.title("Korrelation zwischen Tweets und citation weight")
+    plt.ylabel("#Tweets")
+    plt.xlabel("itation weight")
+
+    p = numpy.polyfit(x, y, 1)
+    xTrend = range(int(min(x)), int(max(x)+1))
+    yTrend = map(lambda x: numpy.polyval(p, x), xTrend)
+    plt.plot(xTrend, yTrend, color='r')
+
+    plt.figtext(0.80, 0.05,  'korrelationskoeffizient: ' + str(korrelationskoeffizient(x, y)))
+
+    plt.show()
+
+
+
 def userCorrelationToDiscipline():
     """
     zuerst user_disc_map erstellen:
@@ -386,7 +452,7 @@ def userCorrelationToDiscipline():
     if not os.path.isfile(dataPath("user_disc_map.json")):
         userDiscList = []
 
-        for doc in simpleDocs():
+        for doc in SimpleDoc.getall():
             twitterUsers = [tweet.user for tweet in doc.tweets]
             disciplines = doc.mendeleyDisciplines
             if len(twitterUsers)!=0 and disciplines!=None and len(disciplines)!=0:
@@ -492,7 +558,7 @@ def correlationsForQuartals():
         else:
             raise ValueError("Argument quartal consists of a tuple [quartal, year] where quartal must be between 0 and 3")
 
-    allDocs = list(simpleDocs())
+    allDocs = list(SimpleDoc.getall())
     coefficients = []
     for quartal in quartals:
         docs = filter(lambda doc: docInQuartal(doc, quartal) and doc.mendeleyReaders != None, allDocs)
@@ -506,7 +572,7 @@ def correlationsForQuartals():
     plt.show()
 
 def correlationTimeTweets():
-    x, y = zip(*map(lambda doc: [doc.publicationTimestamp, len(doc.tweets)], simpleDocs()))
+    x, y = zip(*map(lambda doc: [doc.publicationTimestamp, len(doc.tweets)], SimpleDoc.getall()))
     print korrelationskoeffizient(x, y) # 0.082
 
 
@@ -514,7 +580,7 @@ def alteringTweetStreamAfterFirstPeak():
     relativeTweetDiffAfter1WeekAndTotal = map(
         lambda doc: 
             float(doc.numTweets()) / doc.numTweetsBetweenRelative(None, 60*60*24*7),
-            filter(lambda doc: doc.numTweetsBetweenRelative(None, 60*60*24*7) >= 5, simpleDocs())
+            filter(lambda doc: doc.numTweetsBetweenRelative(None, 60*60*24*7) >= 5, SimpleDoc.getall())
     )
 
     relBins, labels = pieData([
@@ -535,8 +601,8 @@ def alteringTweetStreamAfterFirstPeak():
     plt.show()
 
 def cummulativeTwitterPlots():
-    # twitterTimelines, publicationTimestamps = zip(*filter(lambda timelinePubTs: len(timelinePubTs[0]) != 0, map(lambda doc: [doc.cummulativeTwitterTimeline(), doc.publicationTimestamp], simpleDocs())))
-    twitterTimelines = filter(lambda tl: len(tl) != 0, map(lambda doc: map(lambda point: [point[0]-doc.publicationTimestamp, point[1]], doc.cummulativeTwitterTimeline()), simpleDocs()))
+    # twitterTimelines, publicationTimestamps = zip(*filter(lambda timelinePubTs: len(timelinePubTs[0]) != 0, map(lambda doc: [doc.cummulativeTwitterTimeline(), doc.publicationTimestamp], SimpleDoc.getall())))
+    twitterTimelines = filter(lambda tl: len(tl) != 0, map(lambda doc: map(lambda point: [point[0]-doc.publicationTimestamp, point[1]], doc.cummulativeTwitterTimeline()), SimpleDoc.getall()))
 
     # twitterTimelines = filter(lambda tl: len(tl) < 20, twitterTimelines)
     # twitterTimelines = filter(lambda tl: len(tl) > 50, twitterTimelines)
@@ -549,7 +615,7 @@ def cummulativeTwitterPlots():
 
 def groupByJournalAndVolume():
     issns = { }
-    docs = list(simpleDocs())
+    docs = list(SimpleDoc.getall())
     for doc in docs:
         issns[doc.issn] = issns.get(doc.issn, 0) + 1
 
@@ -636,51 +702,132 @@ def exponentialTest(doc, referencePoint = 3):
 from scipy import stats
 
 def findDensity():
-    allDocs = list(simpleDocs())
+    allDocs = list(simpleDoc.getall())
     #maximumDocAge = 60*60*24*300
-    maximumTweetAge = 60*60*24*300
-    minimumTweetAge = 60*60*24*3
+    timeslot = 60*60*24*1
+    maximumTweetAge = 60*60*24*365
+    minimumTweetAge = 60*60*24*0
     
-    consideredDocs = filter(lambda doc: len(doc.tweets) != 0 and doc.year() == 2012, allDocs)
+    consideredDocs = filter(lambda doc: len(doc.tweets) != 0 and doc.year() == 2012 and doc.month()>=6 and doc.month()<=8, allDocs)
     print "numDocs: " + str(len(consideredDocs))
 
     diffs = [tweet.timestamp-doc.publicationTimestamp for doc in consideredDocs for tweet in doc.tweets ]
     diffs = filter(lambda diff: minimumTweetAge <= diff <= maximumTweetAge, diffs)
-    diffs = map(lambda x: float(x)/(60*60*24*2), diffs)
+    diffs2 = filter(lambda diff: diff >= timeslot*20, diffs)
+    diffs = map(lambda x: float(x)/(timeslot), diffs)
     print "numTweets: " + str(len(diffs))
+    print "oldTweets" + str(len(diffs2))
 
     kernel = stats.gaussian_kde(diffs)
     xmin = min(diffs)
     xmax = max(diffs)
     numTweets = len(diffs)
     xPoints = numpy.arange(xmin, xmax, (xmax-xmin)/1000)
-    yPoints = map(lambda x: kernel(x), xPoints)
+    yPoints = map(lambda x: kernel(x)*numTweets, xPoints)
 
     # exp-fun
-    plt.hist(diffs, bins=100, normed=True)
-    plt.plot(xPoints, yPoints)
+    plt.figure(num=None, figsize=(8, 4), dpi=80, facecolor='w', edgecolor='k')
+    val, bins, patches = plt.hist([diffs, [1]], 50, stacked=True)
+    #plt.plot(xPoints, yPoints)
+    plt.ylim((0, 300))
+    ylim = plt.ylim()
+    plt.xlim((0, 365))
+    xlim = plt.xlim()
+    plt.xlabel("day")
+    plt.ylabel("#tweets")
+    plt.tight_layout()
 
-    lam = 1.0/6
-    randomTweetTimes = []
-    randomTweetTimes.extend(numpy.random.exponential(1.0/lam, (numTweets*80)/100))
-    randomTweetTimes.extend(map(lambda r: r*((300-3)/2), numpy.random.random((numTweets*20)/100)))
+    # randomTweetTimes = []
+    rand1 = map(lambda x: float(x)+bins[0], numpy.random.gamma(0.75, 1.75, (numTweets*60)/100))
+    rand2 = map(lambda x: float(x)+bins[0], numpy.random.gamma(2, 6, (numTweets*30)/100))
+    rand3 = map(lambda x: float(x)+bins[0], numpy.random.gamma(1, 200, (numTweets*10)/100))
 
-    plt.figure()
-    plt.hist(randomTweetTimes, bins=100, normed=True)
-    plt.y
-    plt.plot(xPoints, yPoints)
+    plt.figure(num=None, figsize=(8, 4), dpi=80, facecolor='w', edgecolor='k')
+    val, bins, patches = plt.hist([rand3, rand2, rand1], bins, stacked=True, color = ['y', 'r', 'b'])
+    plt.ylim(ylim)
+    plt.xlim(xlim)
+    plt.xlabel("day")
+    plt.ylabel("#tweets")
+    #plt.plot(xPoints, yPoints)
     # yExp = map(lambda xx: (1-numpy.exp(-lam*xx)), xPoints)
-    #yExp = map(lambda xx: lam*numpy.exp(-lam*xx), xPoints)
-    #plt.plot(xPoints, yExp)
-
+    # yExp = map(lambda xx: lam*numpy.exp(-lam*xx), xPoints)
+    # plt.plot(xPoints, yExp)
+    plt.tight_layout()
     plt.show()
 
-def inLinkQuality():
-    return False
+def twitterHist():
+    plt.figure(num=None, figsize=(8, 4), dpi=80, facecolor='w', edgecolor='k')
 
-# crossrefVsTwitter(yearBounds=[2012, 2012], minTweetAge=60*60*24*30)
-# print korrelationskoeffizient([1, 2, 2, 3, 3, 4], [3, 4, 2, 3, 1, 2])
-# print numpy.corrcoef([1, 2, 2, 3, 3, 4], [3, 4, 2, 3, 1, 2])
-# groupByJournalAndVolume()
-# alteringTweetStreamAfterFirstPeak()
-# correlationTimeTweets() # 0.082
+    tweetTime = [(tweet.datetime().year, tweet.datetime().month) for doc in SimpleDoc.getall() for tweet in doc.tweets]
+    histDisc(plt, tweetTime, width=0.5)
+    #plt.title("Verteilung der Tweets nach Jahr und Monat")
+    plt.tight_layout()
+    plt.show()
+
+def overviewData():
+    # earliest tweet timestamp: 1337079632
+    docs = list(SimpleDoc.getall())
+    tweets = [ tweet for doc in docs for tweet in doc.tweets ]
+
+    print "total Tweets: " + str(len(tweets))
+    print "latest tweet: " + str(max(tweets, key=lambda x: x.timestamp).datetime())
+    print "earliest tweet: " + str(min(tweets, key=lambda x: x.timestamp).datetime())
+    
+    print "total Documents: " + str(len(docs))
+    print "latest document: " + str(max(docs, key=lambda doc: doc.publicationTimestamp).publicationDatetime())
+    print "earliest document: " + str(min(docs, key=lambda doc: doc.publicationTimestamp).publicationDatetime())
+
+def tweetHist():
+    docs = list(filter(
+        lambda doc: 
+            (doc.publicationDatetime().year==2012 and 
+            doc.publicationDatetime().month>=6 and doc.publicationDatetime().month<=8),
+        SimpleDoc.getall()
+    ))
+
+    numTweets = [doc.numTweets() for doc in docs]
+    plt.figure()
+    plt.hist(numTweets, bins=xrange(0, 150, 5))
+    
+    plt.figure()
+    numCite = [doc.numCitations() for doc in docs]
+    plt.hist(numCite, bins=xrange(0, 150, 5))
+    plt.show()
+
+def rankCorrelation():
+    docs = list(filter(
+        lambda doc: 
+            (doc.publicationDatetime().year==2012 and 
+            doc.publicationDatetime().month>=6 and doc.publicationDatetime().month<=8),
+        SimpleDoc.getall()
+    ))
+
+    doisByTweets = map( lambda doc: doc.doi,
+        sorted(docs, key=lambda doc: doc.numTweets(), reverse=True)
+    )
+
+    doisByCitations = map( lambda doc: doc.doi,
+        sorted(docs, key=lambda doc: doc.numCitations(), reverse=True)
+    )
+
+    doisByTweetsRank = {}
+    rank = 0
+    for doi in doisByTweets:
+        doisByTweetsRank[doi] = rank
+        rank += 1
+
+    doisByTweets2 = range(0, len(doisByTweets))
+    doisByCitations2 = []
+    for doi in doisByCitations:
+        doisByCitations2.append(doisByTweetsRank[doi])
+
+    tau, pValue = sp.stats.kendalltau(doisByTweets2, doisByCitations2)
+    print "Kendall tau: " + str(tau)
+    print "p value: " + str(pValue)
+
+    r, pValue = sp.stats.spearmanr(doisByTweets2, doisByCitations2)
+    print "Spearman r: " + str(r)
+    print "p value: " + str(pValue)
+
+
+
