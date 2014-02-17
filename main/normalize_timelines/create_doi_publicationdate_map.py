@@ -5,7 +5,7 @@ lines = open("/home/simon/dois", "r")
 
 doi = None
 publicationDate = None
-documents = {}
+documents = { }
 
 doiRe = re.compile('"doi": "([^"]*)"')
 publicationDateRe = re.compile('"publication_date": "([^"]*)"')
