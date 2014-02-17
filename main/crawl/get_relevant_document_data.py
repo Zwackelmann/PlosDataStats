@@ -58,45 +58,45 @@ def findRelevantData(doc):
     for source in doc['sources']:
         if source['name'] == 'citeulike':
             metrics = source['metrics']
-            citeULikeShares = metrics['shares']
-            citeULikeTotal = metrics['total']
+            citeULikeShares = metrics.get('shares', None)
+            citeULikeTotal = metrics.get('total', None)
         if source['name'] == 'connotea':
             metrics = source['metrics']
-            connoteaCitatinos = metrics['citations']
-            connoteaTotal = metrics['total']
+            connoteaCitations = metrics.get('citations', None)
+            connoteaTotal = metrics.get('total', None)
         if source['name'] == 'nature':
-            metrics = source['metrics']
-            natureCitatinos = metrics['citations']
-            natureTotal = metrics['total']
+            metrics = source.get('metrics', None)
+            natureCitations = metrics.get('citations', None)
+            natureTotal = metrics.get('total', None)
         if source['name'] == 'postgenomic':
             metrics = source['metrics']
-            postgenomicCitatinos = metrics['citations']
-            postgenomicTotal = metrics['total']
+            postgenomicCitations = metrics.get('citations', None)
+            postgenomicTotal = metrics.get('total', None)
         if source['name'] == 'pubmed':
             metrics = source['metrics']
-            pubmedCitatinos = metrics['citations']
-            pubmedTotal = metrics['total']
+            pubmedCitations = metrics.get('citations', None)
+            pubmedTotal = metrics.get('total', None)
         if source['name'] == 'scopus':
             metrics = source['metrics']
-            scopusCitatinos = metrics['citations']
-            scopusTotal = metrics['total']
+            scopusCitations = metrics.get('citations', None)
+            scopusTotal = metrics.get('total', None)
         if source['name'] == 'pmc':
             metrics = source['metrics']
-            pmcPdf = metrics['pdf']
-            pmcHtml = metrics['html']
+            pmcPdf = metrics.get('pdf', None)
+            pmcHtml = metrics.get('html', None)
         if source['name'] == 'facebook':
             metrics = source['metrics']
-            facebookShares = metrics['shares']
-            facebookComments = metrics['comments']
-            facebookLikes = metrics['likes']
-            facebookTotal = metrics['total']
+            facebookShares = metrics.get('shares', None)
+            facebookComments = metrics.get('comments', None)
+            facebookLikes = metrics.get('likes', None)
+            facebookTotal = metrics.get('total', None)
         if source['name'] == 'twitter':
             twitterData = extractRelevantTwitterData(source)
         if source['name'] == 'mendeley':
             metrics = source['metrics']
-            mendeleyGroups = metrics['groups']
-            mendeleyShares = metrics['shares']
-            mendeleyTotal = metrics['total']
+            mendeleyGroups = metrics.get('groups', None)
+            mendeleyShares = metrics.get('shares', None)
+            mendeleyTotal = metrics.get('total', None)
 
             events = source['events']
             if len(events) != 0:
@@ -126,10 +126,10 @@ def findRelevantData(doc):
                 htmlViews = counterMetrics.get('html', None)
         if source['name'] == 'relativemetric':
             metrics = source['metrics']
-            relativemetricTotal = metrics['total']
+            relativemetricTotal = metrics.get('total', None)
 
 
-    jdoc = json.dumps([doi, title, timestr2timestamp(pubDate), twitterData, citationTimeline, citations, mendeleyDisciplineList, mendeleyReaders, issn, issue, volume, pdfViews, htmlViews, citeULikeShares, citeULikeTotal, connoteaCitations, connoteaTotal, natureCitations, natureTotal, postgenomicCitations, postgenomicTotal, pubmedCitations, pubmedTotal, scopusCitations, scopusTotal, pmcPdf, pmcHmtl, facebookShares, facebookComments, facebookLikes, facebookTotal, mendeleyGroups, mendeleyShares, mendeleyTotal, relativemetricTotal])
+    jdoc = json.dumps([doi, title, timestr2timestamp(pubDate), twitterData, citationTimeline, citations, mendeleyDisciplineList, mendeleyReaders, issn, issue, volume, pdfViews, htmlViews, citeULikeShares, citeULikeTotal, connoteaCitations, connoteaTotal, natureCitations, natureTotal, postgenomicCitations, postgenomicTotal, pubmedCitations, pubmedTotal, scopusCitations, scopusTotal, pmcPdf, pmcHtml, facebookShares, facebookComments, facebookLikes, facebookTotal, mendeleyGroups, mendeleyShares, mendeleyTotal, relativemetricTotal])
     file.write(jdoc + "\n")
 
 retweetPattern = re.compile("^RT @([^:]*): (.*)$")
