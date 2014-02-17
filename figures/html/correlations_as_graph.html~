@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.link {
+  fill: none;
+  stroke: #666;
+  stroke-width: 1.5px;
+}
+
+#licensing {
+  fill: green;
+}
+
+.link.licensing {
+  stroke: green;
+}
+
+.link.resolved {
+  stroke-dasharray: 0,2 1;
+}
+
+circle {
+  fill: #ccc;
+  stroke: #333;
+  stroke-width: 1.5px;
+}
+
+text {
+  font: 10px sans-serif;
+  pointer-events: none;
+  text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;
+}
+
+</style>
+<body>
+<h1>Korrelationsgraph</h1>
+<ul>
+	<li>Jedes Metrik-Pärchen, dessen durchschnittliche Korrelation mindestens 0.4 ist, sind mit einer Kante verbunden</li>
+	<li>Die Farbe und Dicke der Linie verdeutlicht die Stärke der Korrelation</li>
+</ul>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+
+// http://blog.thomsonreuters.com/index.php/mobile-patent-suits-graphic-of-the-day/
+var links = [
+  {"source": "mendeleyReaders", "target": "pdfViews", "weight": 0.66212523919239463},
+  {"source": "mendeleyReaders", "target": "htmlViews", "weight": 0.53388981273249558},
+  {"source": "mendeleyReaders", "target": "pubmedCitations", "weight": 0.48020151086362944},
+  {"source": "mendeleyReaders", "target": "scopusCitations", "weight": 0.53531301890911964},
+  {"source": "mendeleyReaders", "target": "relativemetricTotal", "weight": 0.40694587430963142},
+  {"source": "mendeleyReaders", "target": "numCitations", "weight": 0.53614352773182461},
+  {"source": "mendeleyReaders", "target": "totalViews", "weight": 0.56078601220052582},
+  {"source": "pdfViews", "target": "htmlViews", "weight": 0.74410929136473347},
+  {"source": "pdfViews", "target": "pubmedCitations", "weight": 0.54728104081694606},
+  {"source": "pdfViews", "target": "scopusCitations", "weight": 0.63336291309761072},
+  {"source": "pdfViews", "target": "pmcPdf", "weight": 0.63252915174509627},
+  {"source": "pdfViews", "target": "pmcHtml", "weight": 0.58452887761027139},
+  {"source": "pdfViews", "target": "relativemetricTotal", "weight": 0.47885887350686945},
+  {"source": "pdfViews", "target": "numCitations", "weight": 0.62945496359358932},
+  {"source": "pdfViews", "target": "totalViews", "weight": 0.79392832341560349},
+  {"source": "htmlViews", "target": "pubmedCitations", "weight": 0.40198714896590304},
+  {"source": "htmlViews", "target": "scopusCitations", "weight": 0.46419259462630974},
+  {"source": "htmlViews", "target": "pmcPdf", "weight": 0.44848157402192118},
+  {"source": "htmlViews", "target": "pmcHtml", "weight": 0.47010892329300985},
+  {"source": "htmlViews", "target": "numCitations", "weight": 0.4638085446106352},
+  {"source": "htmlViews", "target": "totalViews", "weight": 0.98050308847252954},
+  {"source": "citeULikeShares", "target": "connoteaCitations", "weight": 0.56792775586362032},
+  {"source": "citeULikeShares", "target": "natureCitations", "weight": 0.43149263527713178},
+  {"source": "citeULikeShares", "target": "postgenomicCitations", "weight": 0.44524460090630652},
+  {"source": "connoteaCitations", "target": "natureCitations", "weight": 0.66400628353517355},
+  {"source": "connoteaCitations", "target": "postgenomicCitations", "weight": 0.72282134781020702},
+  {"source": "connoteaCitations", "target": "facebookComments", "weight": 0.51155230413331909},
+  {"source": "connoteaCitations", "target": "facebookLikes", "weight": 0.48556849553436671},
+  {"source": "connoteaCitations", "target": "mendeleyGroups", "weight": 0.51271054499904267},
+  {"source": "connoteaCitations", "target": "numTweets", "weight": 0.49315911978061749},
+  {"source": "natureCitations", "target": "postgenomicCitations", "weight": 0.69461122325981217},
+  {"source": "natureCitations", "target": "facebookShares", "weight": 0.4123192991783497},
+  {"source": "natureCitations", "target": "facebookComments", "weight": 0.53059956640510919},
+  {"source": "natureCitations", "target": "facebookLikes", "weight": 0.50622080567967465},
+  {"source": "natureCitations", "target": "mendeleyGroups", "weight": 0.5051587220707241},
+  {"source": "natureCitations", "target": "numTweets", "weight": 0.51679062289691469},
+  {"source": "postgenomicCitations", "target": "facebookComments", "weight": 0.51134507200834756},
+  {"source": "postgenomicCitations", "target": "facebookLikes", "weight": 0.48424919395940563},
+  {"source": "postgenomicCitations", "target": "mendeleyGroups", "weight": 0.50782709400317416},
+  {"source": "postgenomicCitations", "target": "numTweets", "weight": 0.49148053898180666},
+  {"source": "pubmedCitations", "target": "scopusCitations", "weight": 0.79205944169101838},
+  {"source": "pubmedCitations", "target": "pmcPdf", "weight": 0.52075630861866917},
+  {"source": "pubmedCitations", "target": "pmcHtml", "weight": 0.45944010072079894},
+  {"source": "pubmedCitations", "target": "relativemetricTotal", "weight": 0.46771064752229924},
+  {"source": "pubmedCitations", "target": "numCitations", "weight": 0.72803382075531131},
+  {"source": "pubmedCitations", "target": "totalViews", "weight": 0.42686441822266125},
+  {"source": "scopusCitations", "target": "pmcPdf", "weight": 0.60610259195089544},
+  {"source": "scopusCitations", "target": "pmcHtml", "weight": 0.54100419892414131},
+  {"source": "scopusCitations", "target": "relativemetricTotal", "weight": 0.55893049040721965},
+  {"source": "scopusCitations", "target": "numCitations", "weight": 0.84583775995700528},
+  {"source": "scopusCitations", "target": "totalViews", "weight": 0.49454402144533044},
+  {"source": "pmcPdf", "target": "pmcHtml", "weight": 0.79112349175659402},
+  {"source": "pmcPdf", "target": "relativemetricTotal", "weight": 0.52061094747633074},
+  {"source": "pmcPdf", "target": "numCitations", "weight": 0.58764000400743976},
+  {"source": "pmcPdf", "target": "totalViews", "weight": 0.48211107286190491},
+  {"source": "pmcHtml", "target": "relativemetricTotal", "weight": 0.48667586921245665},
+  {"source": "pmcHtml", "target": "numCitations", "weight": 0.52276738004478085},
+  {"source": "pmcHtml", "target": "totalViews", "weight": 0.49551215551330913},
+  {"source": "facebookShares", "target": "facebookComments", "weight": 0.79303884550978587},
+  {"source": "facebookShares", "target": "facebookLikes", "weight": 0.80986215010476137},
+  {"source": "facebookShares", "target": "numTweets", "weight": 0.60796978120289735},
+  {"source": "facebookComments", "target": "facebookLikes", "weight": 0.86659134285443018},
+  {"source": "facebookComments", "target": "numTweets", "weight": 0.60059878943002365},
+  {"source": "facebookLikes", "target": "numTweets", "weight": 0.65569555067396457},
+  {"source": "relativemetricTotal", "target": "numCitations", "weight": 0.50739751582222048},
+  {"source": "relativemetricTotal", "target": "totalViews", "weight": 0.40695531157407178},
+  {"source": "numCitations", "target": "totalViews", "weight": 0.49302793476541912}
+];
+
+var nodes = {};
+
+// Compute the distinct nodes from the links.
+links.forEach(function(link) {
+  link.source = nodes[link.source] || (nodes[link.source] = {name: link.source});
+  link.target = nodes[link.target] || (nodes[link.target] = {name: link.target});
+});
+
+var width = 1200,
+    height = 1000;
+
+var force = d3.layout.force()
+    .nodes(d3.values(nodes))
+    .links(links)
+    .size([width, height])
+    .linkDistance(150)
+    .charge(-500)
+    .on("tick", tick)
+    .start();
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+// Per-type markers, as they don't inherit styles.
+svg.append("defs").selectAll("marker")
+    .data(["suit", "licensing", "resolved"])
+  .enter().append("marker")
+    .attr("id", function(d) { return d; })
+    .attr("viewBox", "0 -5 10 10")
+    .attr("refX", 15)
+    .attr("refY", -1.5)
+    .attr("markerWidth", 3)
+    .attr("markerHeight", 3)
+    .attr("orient", "auto")
+  .append("path")
+    .attr("d", "M0,-5L10,0L0,5");
+
+var path = svg.append("g").selectAll("path")
+    .data(force.links())
+  .enter().append("path")
+    .attr("fill", function(d) { return "none" })
+    .attr("stroke", function(d) { 
+        if(d.weight < 0.5) return "#AAA"
+        else if (d.weight < 0.6) return "#888"
+        else if (d.weight < 0.7) return "#666"
+        else if (d.weight < 0.8) return "#444"
+        else if (d.weight < 0.9) return "#222"
+        else return "#000"
+    })
+    .attr("stroke-width", function(d) { return (d.weight*4) + "px" })
+
+var circle = svg.append("g").selectAll("circle")
+    .data(force.nodes())
+  .enter().append("circle")
+    .attr("r", 5)
+    .call(force.drag);
+
+var text = svg.append("g").selectAll("text")
+    .data(force.nodes())
+  .enter().append("text")
+    .attr("x", 8)
+    .attr("y", ".31em")
+    .text(function(d) { return d.name; });
+
+// Use elliptical arc path segments to doubly-encode directionality.
+function tick() {
+  path.attr("d", linkArc);
+  circle.attr("transform", transform);
+  text.attr("transform", transform);
+}
+
+function linkArc(d) {
+  var dx = d.target.x - d.source.x,
+      dy = d.target.y - d.source.y,
+      dr = 0// Math.sqrt(dx * dx + dy * dy);
+  return "M" + d.source.x + "," + d.source.y + "A" + dr + "," + dr + " 0 0,1 " + d.target.x + "," + d.target.y;
+}
+
+function transform(d) {
+  return "translate(" + d.x + "," + d.y + ")";
+}
+
+</script>

@@ -6,6 +6,8 @@ import string
 import numpy
 import time
 import calendar
+from scipy import stats
+import math
 
 relativeDataPath = "data"
 relativeFigurePath = "figures"
@@ -72,23 +74,6 @@ def doForEachPlosDoc(fun, maxDocs=None, verbose=False):
 simpleDocsFilename = "relevant_document_data.json"
 simpleDocsPath = path.join(dataBasePath, simpleDocsFilename)
 def doForEachSimpleDoc(fun, maxDocs=None):
-    """Document Structure:
-        [[0]   [1]     [2]        [3]            [4]            [5]              [6]                  [7]        [8]    [9]    [10]     [11]      [12]   ]
-        [doi, title, pubDate, twitterData, citationTimeline, citations, mendeleyDisciplineList, mendeleyReaders, issn, issue, volume, pdfViews, htmlViews]
-
-        twitterData:
-                     [      [0]      [1]                 [2]                         [3]    ]
-            list of: [ "tweet text", user, retweetUser (None, wenn kein retweet), zeitpunkt ]
-
-        citationTimeline:
-                     [    [0]           [1]      ]
-            list of: [ zeitpunkt, totalCitations ]
-
-        citations:
-                     [[0]   [1]         [2]      ]
-            list of: [doi, issn, publication_type]
-        mendeleyDisciplineList: list of strings
-"""
     lines = open(simpleDocsPath)
     count = 0
     for line in lines:
@@ -124,6 +109,26 @@ class SimpleDoc:
     corpus = None
 
     def __init__(self, docData):
+        """Document Structure:
+        [[0]   [1]     [2]        [3]            [4]            [5]              [6]                  [7]        [8]    [9]    [10]     [11]      [12]           [13]            [14]              [15]             [16]            [17]           [18]               [19]               [20]             [21]           [22]           [23]           [24]       [25]    [26]        [27]              [28]            [29]           [30]           [31]             [32]           [33]            [34]         ]
+        [doi, title, pubDate, twitterData, citationTimeline, citations, mendeleyDisciplineList, mendeleyReaders, issn, issue, volume, pdfViews, htmlViews, citeULikeShares, citeULikeTotal, connoteaCitations, connoteaTotal, natureCitations, natureTotal, postgenomicCitations, postgenomicTotal, pubmedCitations, pubmedTotal, scopusCitations, scopusTotal, pmcPdf, pmcHtml, facebookShares, facebookComments, facebookLikes, facebookTotal, mendeleyGroups, mendeleyShares, mendeleyTotal, relativemetricTotal]
+
+        twitterData:
+                     [      [0]      [1]                 [2]                         [3]    ]
+            list of: [ "tweet text", user, retweetUser (None, wenn kein retweet), zeitpunkt ]
+
+        citationTimeline:
+                     [    [0]           [1]      ]
+            list of: [ zeitpunkt, totalCitations ]
+
+        citations:
+                     [[0]   [1]         [2]      ]
+            list of: [doi, issn, publication_type]
+        mendeleyDisciplineList: list of strings
+        """
+        if len(docData) != 35:
+            raise ValueError("The docData array for initializing a SimpleDoc must have exactly 35 elements")
+
         self.doi = docData[0]
         self.title = docData[1]
         self.publicationTimestamp = docData[2]
@@ -139,6 +144,28 @@ class SimpleDoc:
         self.volume = docData[10]
         self.pdfViews = docData[11]
         self.htmlViews = docData[12]
+        self.citeULikeShares = docData[13]
+        self.citeULikeTotal = docData[14]
+        self.connoteaCitations = docData[15]
+        self.connoteaTotal = docData[16]
+        self.natureCitations = docData[17]
+        self.natureTotal = docData[18]
+        self.postgenomicCitations = docData[19]
+        self.postgenomicTotal = docData[20]
+        self.pubmedCitations = docData[21]
+        self.pubmedTotal = docData[22]
+        self.scopusCitations = docData[23]
+        self.scopusTotal = docData[24]
+        self.pmcPdf = docData[25]
+        self.pmcHtml = docData[26]
+        self.facebookShares = docData[27]
+        self.facebookComments = docData[28]
+        self.facebookLikes = docData[29]
+        self.facebookTotal = docData[30]
+        self.mendeleyGroups = docData[31]
+        self.mendeleyShares = docData[32]
+        self.mendeleyTotal = docData[33]
+        self.relativemetricTotal = docData[34]
 
     def publicationDatetime(self):
         return datetime.fromtimestamp(self.publicationTimestamp)
@@ -179,7 +206,10 @@ class SimpleDoc:
     def numCitations(self):
         return max(map(lambda c: c.totalCitations, self.citationTimeline))
 
-    def timespan(self):
+    def averageCitations(self):
+        return numpy.mean([self.numCitations(), self.scopusCitations, self.pubmedCitations])
+
+    def tweetTimespan(self):
         timestamps = map(lambda tweet: tweet.timestamp, self.tweets)
         return max(timestamps) - min(timestamps)
 
@@ -193,7 +223,10 @@ class SimpleDoc:
         return self.publicationDatetime().month
 
     def totalViews(self):
-        return self.htmlViews + self.pdfViews
+        if self.htmlViews is None or self.pdfViews is None:
+            return None
+        else:
+            return self.htmlViews + self.pdfViews
 
     def citationWeight(self, method = "sum"):
         ifs = []
@@ -230,19 +263,19 @@ class SimpleDoc:
 
     issnToImpact = readIssnData()
 
-    @staticmethod
-    def getall():
+    @classmethod
+    def getall(cls):
         if SimpleDoc.corpus is None:
             SimpleDoc.corpus = SimpleDoc.readCorpus()
         return SimpleDoc.corpus
 
-    @staticmethod
-    def readCorpus():
+    @classmethod
+    def readCorpus(cls):
         lines = open(simpleDocsPath)
         return [SimpleDoc(json.loads(line)) for line in lines]
 
-    @staticmethod
-    def getallBetween(lowerBound = None, upperBound = None):
+    @classmethod
+    def getallBetween(cls, lowerBound = None, upperBound = None):
         if type(lowerBound) is int:
             lowerBoundTimestamp = yearMonthDay2Timestamp(year=lowerBound)
         elif lowerBound is None:
@@ -277,6 +310,17 @@ class SimpleDoc:
                 (not upperBoundTimestamp or doc.publicationTimestamp < upperBoundTimestamp),
             SimpleDoc.getall()
         )
+
+    @classmethod
+    def findByDoi(cls, doi):
+        if SimpleDoc.doi2DocMap is None:
+            SimpleDoc.doi2DocMap = { }
+            for doc in SimpleDoc.getall():
+                SimpleDoc.doi2DocMap[doc.doi] = doc
+
+        return SimpleDoc.doi2DocMap[doi]
+
+SimpleDoc.doi2DocMap = None
 
 class Tweet:
     def __init__(self, tweetData):
@@ -402,3 +446,115 @@ class User:
                 User.twitterName2UserMap[user.twitterName] = user
 
         return User.twitterName2UserMap.get(username, None)
+
+class Sentiment:
+    def __init__(self, ident, classification):
+        self.id_tweetTimestamp = ident[0]
+        self.id_tweetUser = ident[1]
+        self.id_docDoi = ident[2]
+        self.classification = classification
+
+    def ident(self):
+        return (self.id_tweetTimestamp, self.id_tweetUser, self.id_docDoi)
+
+    def asJsonString(self):
+        return json.dumps([self.id_tweetTimestamp, self.id_tweetUser, self.id_docDoi, self.classification])
+
+    def doc(self):
+        return SimpleDoc.findByDoi(self.id_docDoi)
+
+    @classmethod
+    def openFile(cls, filename):
+        l = cls.fromFile(filename)
+        Sentiment.openFilename = filename
+        Sentiments.allSentiments = l
+
+    @classmethod
+    def fromFile(cls, filename):
+        l = [ ]
+        lines = open(filename, "r")
+
+        for line in lines:
+            jsonArray = json.loads(line)
+
+            ident = (jsonArray[0], jsonArray[1], jsonArray[2])
+            classification = jsonArray[3]
+
+            l.append(Sentiment(ident, classification))
+
+        lines.close()
+        return l
+
+    @classmethod
+    def append(cls, ident, classification):
+        s = Sentiment(ident, classification)
+        Sentiment.allSentiments.append(s)
+
+        if Sentiment.openFilename != None:
+            f = open(Sentiment.openFilename, "a")
+            f.write(s.asJsonString()+"\n")
+            f.close()
+
+    @classmethod
+    def sentimentAvailable(ident):
+        for Sentiment.availableSentiment in Sentiment.availableSentiments:
+            if availableSentiment.ident() == ident:
+                return True
+
+        return False
+
+Sentiment.openFilename = None
+Sentiment.allSentiments = [ ]
+
+def rankCorrelation(x, y):
+    numPairs = len(x)
+    pairs = zip(range(0, numPairs), x, y)
+
+    identsByX = map( lambda pair: pair[0],
+        sorted(pairs, key=lambda pair: pair[1], reverse=True)
+    )
+
+    identsByY = map( lambda pair: pair[0],
+        sorted(pairs, key=lambda pair: pair[2], reverse=True)
+    )
+
+    identsByXRank = { }
+    rank = 0
+    for ident in identsByX:
+        identsByXRank[ident] = rank
+        rank += 1
+
+    identsByX2 = range(0, numPairs)
+    identsByY2 = []
+
+    for ident in identsByY:
+        identsByY2.append(identsByXRank[ident])
+
+    tau, pValue1 = stats.kendalltau(identsByX2, identsByY2)
+    r, pValue2 = stats.spearmanr(identsByX2, identsByY2)
+
+    return tau, pValue1, r, pValue2
+
+def pearsonCorrelation(x, y):
+    avgX = float(sum(x)) / len(x)
+    avgY = float(sum(y)) / len(y)
+
+    sumErrorProducts = 0
+    for i in range(0, len(x)):
+        sumErrorProducts += (x[i]-avgX)*(y[i]-avgY)
+
+    xSquareError = 0
+    for xi in x:
+        xSquareError += math.pow(xi-avgX, 2)
+
+    ySquareError = 0
+    for yi in y:
+        ySquareError += math.pow(yi-avgY, 2)
+
+    return sumErrorProducts / math.sqrt(xSquareError*ySquareError)
+
+def allCorrelations(x, y):
+    kendall, p1, spearman, p2 = rankCorrelation(x, y)
+    pearson = pearsonCorrelation(x, y)
+
+    return pearson, kendall, spearman

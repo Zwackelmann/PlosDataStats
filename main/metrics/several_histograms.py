@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from main.util.common import dataPath, figurePath, groupCount, writeJsonToData, readJsonFromData, formatHist, twitterHorizonDocs, User, SimpleDoc
+from main.util.common import dataPath, figurePath, groupCount, writeJsonToData, readJsonFromData, formatHist, twitterHorizonDocs, User, SimpleDoc, allCorrelations
 from matplotlib import ticker
 from main.util.plotting import histDisc, hist, barPlot, pieData, paperFigure
 import numpy
@@ -516,24 +516,6 @@ def userCorrelationToDiscipline():
             print relCounts
             print "\n\n"
 
-def korrelationskoeffizient(x, y):
-    avgX = float(sum(x)) / len(x)
-    avgY = float(sum(y)) / len(y)
-
-    sumErrorProducts = 0
-    for i in range(0, len(x)):
-        sumErrorProducts += (x[i]-avgX)*(y[i]-avgY)
-
-    xSquareError = 0
-    for xi in x:
-        xSquareError += math.pow(xi-avgX, 2)
-
-    ySquareError = 0
-    for yi in y:
-        ySquareError += math.pow(yi-avgY, 2)
-
-    return sumErrorProducts / math.sqrt(xSquareError*ySquareError)
-
 def correlationsForQuartals():
     quartals = [
         [3, 2008],
@@ -794,40 +776,19 @@ def tweetHist():
     plt.hist(numCite, bins=xrange(0, 150, 5))
     plt.show()
 
-def rankCorrelation():
-    docs = list(filter(
-        lambda doc: 
-            (doc.publicationDatetime().year==2012 and 
-            doc.publicationDatetime().month>=6 and doc.publicationDatetime().month<=8),
-        SimpleDoc.getall()
-    ))
+def tweetsBySpecificUserCorrelations():
+    docs = SimpleDoc.getallBetween((2012, 6), (2012, 8))
 
-    doisByTweets = map( lambda doc: doc.doi,
-        sorted(docs, key=lambda doc: doc.numTweets(), reverse=True)
-    )
+    pairs = []
+    for doc in docs:
+        numTweets = len(filter(lambda tweet: tweet.username=="ATP_CME" ,doc.tweets))
+        citations = doc.averageCitations()
+        pairs.append([numTweets, citations])
 
-    doisByCitations = map( lambda doc: doc.doi,
-        sorted(docs, key=lambda doc: doc.numCitations(), reverse=True)
-    )
+    x, y = zip(*pairs)
 
-    doisByTweetsRank = {}
-    rank = 0
-    for doi in doisByTweets:
-        doisByTweetsRank[doi] = rank
-        rank += 1
+    print allCorrelations(x, y)
+    plt.scatter(x, y)
+    plt.show()
 
-    doisByTweets2 = range(0, len(doisByTweets))
-    doisByCitations2 = []
-    for doi in doisByCitations:
-        doisByCitations2.append(doisByTweetsRank[doi])
-
-    tau, pValue = sp.stats.kendalltau(doisByTweets2, doisByCitations2)
-    print "Kendall tau: " + str(tau)
-    print "p value: " + str(pValue)
-
-    r, pValue = sp.stats.spearmanr(doisByTweets2, doisByCitations2)
-    print "Spearman r: " + str(r)
-    print "p value: " + str(pValue)
-
-
-publication_years()
+tweetsBySpecificUserCorrelations()
