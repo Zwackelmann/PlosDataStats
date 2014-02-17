@@ -261,7 +261,7 @@ class SimpleDoc:
         else:
             raise ValueError(method + " is no valid method for citation weighting")
 
-    issnToImpact = readIssnData()
+    issnToImpact = readIssnData() if not onTbdb else None
 
     @classmethod
     def getall(cls):
