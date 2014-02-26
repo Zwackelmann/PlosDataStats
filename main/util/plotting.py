@@ -18,9 +18,9 @@ def histDisc(plt, x, bins = None, width = 0.35):
     ax = plt.axes()
     rects = ax.bar(ind+width/2, values, width, color='r')
     ax.set_xticks(ind+width)
-    ax.set_xticklabels( labels, rotation='horizontal' )
+    ax.set_xticklabels(labels, rotation='horizontal')
     plt.yticks(xrange(0, 30001, 2000))
-    ax.set_yticklabels( ["0", "2k", "4k", "6k", "8k", "10k", "12k", "14k", "16k", "18k", "20k", "22k", "24k", "26k", "28k", "30k"], rotation='horizontal')
+    ax.set_yticklabels(["0", "2k", "4k", "6k", "8k", "10k", "12k", "14k", "16k", "18k", "20k", "22k", "24k", "26k", "28k", "30k"], rotation='horizontal')
     # ax.set_ylabel('Scores')
     # ax.set_title('Scores by group and gender')
 
@@ -29,10 +29,10 @@ def barPlot(plt, labels, values, width = 0.35):
     totalBars = len(values)
     ind = np.arange(totalBars)
 
-    fig, ax = plt.subplots()
+    ax = plt.axes()
     rects = ax.bar(ind+width/2, values, width, color='r')
     ax.set_xticks(ind+width)
-    ax.set_xticklabels( labels )
+    ax.set_xticklabels(labels)
 
     # ax.set_ylabel('Scores')
     # ax.set_title('Scores by group and gender')
@@ -79,3 +79,6 @@ def pieData(binDescriptions, x):
 
 def paperFigure(plt):
     plt.figure(num=None, figsize=(8, 4), dpi=80, facecolor='w', edgecolor='k')
+
+
+    

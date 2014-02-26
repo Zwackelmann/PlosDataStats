@@ -128,7 +128,6 @@ def findRelevantData(doc):
             metrics = source['metrics']
             relativemetricTotal = metrics.get('total', None)
 
-
     jdoc = json.dumps([doi, title, timestr2timestamp(pubDate), twitterData, citationTimeline, citations, mendeleyDisciplineList, mendeleyReaders, issn, issue, volume, pdfViews, htmlViews, citeULikeShares, citeULikeTotal, connoteaCitations, connoteaTotal, natureCitations, natureTotal, postgenomicCitations, postgenomicTotal, pubmedCitations, pubmedTotal, scopusCitations, scopusTotal, pmcPdf, pmcHtml, facebookShares, facebookComments, facebookLikes, facebookTotal, mendeleyGroups, mendeleyShares, mendeleyTotal, relativemetricTotal])
     file.write(jdoc + "\n")
 

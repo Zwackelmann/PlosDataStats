@@ -8,6 +8,7 @@ import time
 import calendar
 from scipy import stats
 import math
+from dateutil.parser import parse
 
 relativeDataPath = "data"
 relativeFigurePath = "figures"
@@ -53,6 +54,9 @@ def writeAsJson(obj, path):
     file = open(path, "w")
     file.write(json.dumps(obj))
     file.close()
+
+def timestr2timestamp(timestr):
+    return calendar.timegm(parse(timestr).timetuple())
 
 def doForEachPlosDoc(fun, maxDocs=None, verbose=False):
     if onTbdb:
@@ -105,23 +109,23 @@ def yearMonthDay2Timestamp(year, month=1, day=1):
     return time.mktime(dt.timetuple())
 
 class SimpleDoc:
-    maximumTimestampInDataset = 1379408980
+    maximumTimestampInDataset = 1379408980 #  Sep 17 2013
     corpus = None
 
     def __init__(self, docData):
         """Document Structure:
         [[0]   [1]     [2]        [3]            [4]            [5]              [6]                  [7]        [8]    [9]    [10]     [11]      [12]           [13]            [14]              [15]             [16]            [17]           [18]               [19]               [20]             [21]           [22]           [23]           [24]       [25]    [26]        [27]              [28]            [29]           [30]           [31]             [32]           [33]            [34]         ]
-        [doi, title, pubDate, twitterData, citationTimeline, citations, mendeleyDisciplineList, mendeleyReaders, issn, issue, volume, pdfViews, htmlViews, citeULikeShares, citeULikeTotal, connoteaCitations, connoteaTotal, natureCitations, natureTotal, postgenomicCitations, postgenomicTotal, pubmedCitations, pubmedTotal, scopusCitations, scopusTotal, pmcPdf, pmcHtml, facebookShares, facebookComments, facebookLikes, facebookTotal, mendeleyGroups, mendeleyShares, mendeleyTotal, relativemetricTotal]
+        [doi, title, pubDate, twitterData, crossrefTimeline, crossrefs, mendeleyDisciplineList, mendeleyReaders, issn, issue, volume, pdfViews, htmlViews, citeULikeShares, citeULikeTotal, connoteaCitations, connoteaTotal, natureCitations, natureTotal, postgenomicCitations, postgenomicTotal, pubmedCitations, pubmedTotal, scopusCitations, scopusTotal, pmcPdf, pmcHtml, facebookShares, facebookComments, facebookLikes, facebookTotal, mendeleyGroups, mendeleyShares, mendeleyTotal, relativemetricTotal]
 
         twitterData:
                      [      [0]      [1]                 [2]                         [3]    ]
             list of: [ "tweet text", user, retweetUser (None, wenn kein retweet), zeitpunkt ]
 
-        citationTimeline:
+        crossrefTimeline:
                      [    [0]           [1]      ]
             list of: [ zeitpunkt, totalCitations ]
 
-        citations:
+        crossrefs:
                      [[0]   [1]         [2]      ]
             list of: [doi, issn, publication_type]
         mendeleyDisciplineList: list of strings
@@ -134,9 +138,9 @@ class SimpleDoc:
         self.publicationTimestamp = docData[2]
         self.tweets = map(lambda tweetData: Tweet(tweetData), docData[3])
         # TODO check if tweets are sorted in time and sort if not
-        self.citationTimeline = map(lambda citationData: CitationDataPoint(citationData), docData[4])
-        # TODO check if citationTimeline are sorted in time and sort if not
-        self.citations = map(lambda citationData: Citation(citationData), docData[5])
+        self.crossrefTimeline = map(lambda crossrefData: CrossrefDataPoint(crossrefData), docData[4])
+        # TODO check if crossrefTimeline are sorted in time and sort if not
+        self.crossrefs = map(lambda crossrefData: Crossref(crossrefData), docData[5])
         self.mendeleyDisciplines = docData[6]
         self.mendeleyReaders = docData[7]
         self.issn = docData[8]
@@ -203,11 +207,11 @@ class SimpleDoc:
             (not upper or tweet.timestamp<=upper)
         , self.tweets))
 
-    def numCitations(self):
-        return max(map(lambda c: c.totalCitations, self.citationTimeline))
+    def numCrossrefs(self):
+        return max(map(lambda c: c.totalCitations, self.crossrefTimeline))
 
-    def averageCitations(self):
-        return numpy.mean([self.numCitations(), self.scopusCitations, self.pubmedCitations])
+    def averageCrossref(self):
+        return numpy.mean([self.numCrossrefs(), self.scopusCitations, self.pubmedCitations])
 
     def tweetTimespan(self):
         timestamps = map(lambda tweet: tweet.timestamp, self.tweets)
@@ -228,17 +232,17 @@ class SimpleDoc:
         else:
             return self.htmlViews + self.pdfViews
 
-    def citationWeight(self, method = "sum"):
+    def crossrefWeight(self, method = "sum"):
         ifs = []
-        for citation in self.citations:
-            if type(citation.issn) is list:
-                ifs.append(max(map(lambda issn: SimpleDoc.issnToImpact.get(filterDigits(issn), 0.0), citation.issn)))
-            elif type(citation.issn) is unicode:
-                ifs.append(SimpleDoc.issnToImpact.get(filterDigits(citation.issn), 0.0))
-            elif citation.issn is None:
+        for crossref in self.crossref:
+            if type(crossref.issn) is list:
+                ifs.append(max(map(lambda issn: SimpleDoc.issnToImpact.get(filterDigits(issn), 0.0), crossref.issn)))
+            elif type(crossref.issn) is unicode:
+                ifs.append(SimpleDoc.issnToImpact.get(filterDigits(crossref.issn), 0.0))
+            elif crossref.issn is None:
                 ifs.append(None)
             else:
-                raise ValueError("citation issns is neither a list nor a string but " + str(type(citation.issn)))
+                raise ValueError("crossref issns is neither a list nor a string but " + str(type(crossref.issn)))
 
         if method == "sum":
             nonNones = filter(lambda x: x!= None, ifs)
@@ -259,15 +263,19 @@ class SimpleDoc:
             else:
                 return None
         else:
-            raise ValueError(method + " is no valid method for citation weighting")
+            raise ValueError(method + " is no valid method for crossref weighting")
 
     issnToImpact = readIssnData() if not onTbdb else None
 
     @classmethod
-    def getall(cls):
+    def getall(cls, filterFunction = None):
         if SimpleDoc.corpus is None:
             SimpleDoc.corpus = SimpleDoc.readCorpus()
-        return SimpleDoc.corpus
+
+        if filterFunction == None:
+            return SimpleDoc.corpus
+        else:
+            return filter(filterFunction, SimpleDoc.corpus)
 
     @classmethod
     def readCorpus(cls):
@@ -318,7 +326,7 @@ class SimpleDoc:
             for doc in SimpleDoc.getall():
                 SimpleDoc.doi2DocMap[doc.doi] = doc
 
-        return SimpleDoc.doi2DocMap[doi]
+        return SimpleDoc.doi2DocMap.get(doi, None)
 
 SimpleDoc.doi2DocMap = None
 
@@ -338,45 +346,19 @@ class Tweet:
     def datetime(self):
         return datetime.fromtimestamp(self.timestamp)
 
-class CitationDataPoint:
-    def __init__(self, citationData):
-        self.timestamp = citationData[0]
-        self.totalCitations = citationData[1]
+class CrossrefDataPoint:
+    def __init__(self, crossrefData):
+        self.timestamp = crossrefData[0]
+        self.totalCitations = crossrefData[1]
 
     def datetime(self):
         return datetime.fromtimestamp(self.timestamp)
 
-class Citation:
-    def __init__(self, citationData):
-        self.doi = citationData[0]
-        self.issn = citationData[1]
-        self.publication_type = citationData[2]
-
-def twitterHorizonDocs():
-    return filter(
-        lambda doc: 
-            (doc.publicationDatetime().year==2012 and 
-            doc.publicationDatetime().month>=6 and doc.publicationDatetime().month<=8),
-        SimpleDoc.getall()
-    )
-
-mendeleyDisciplines = [
-    'Linguistics', 'Economics', 'Psychology', 'Humanities', 'Materials Science', 
-    'Earth Sciences', 'Environmental Sciences', 'Biological Sciences', 'Medicine', 
-    'Mathematics', 'Chemistry', 'Physics', 'Social Sciences', 'Electrical and Electronic Engineering', 
-    'Astronomy / Astrophysics / Space Science', 'Sports and Recreation', 
-    'Management Science / Operations Research', 'Philosophy', 'Law', 
-    'Business Administration', 'Engineering', 'Design', 'Arts and Literature', 
-    'Education', 'Computer and Information Science'
-]
-
-def groupCount(l):
-    d = { }
-
-    for x in l:
-        d[x] = d.get(x, 0) + 1
-
-    return list(d.items())
+class Crossref:
+    def __init__(self, crossrefData):
+        self.doi = crossrefData[0]
+        self.issn = crossrefData[1]
+        self.publication_type = crossrefData[2]
 
 """
     User data structure:
@@ -506,6 +488,181 @@ class Sentiment:
 Sentiment.openFilename = None
 Sentiment.allSentiments = [ ]
 
+class DocumentTimelines:
+    """[ doi, citeULikeTimeline, pubmedTimeline, scopusTimeline, pmcTimeline, pmcEvents, facebookTimeline, 
+    mendeleyTimeline, crossrefTimeline, counterTimeline, counterEvents, relativemetricTimeline ]"""
+
+    def __init__(self, doi, publicationTimestamp, citeULikeTimeline, pubmedTimeline, scopusTimeline, pmcTimeline, pmcEvents, facebookTimeline,
+        mendeleyTimeline, crossrefTimeline, counterTimeline, counterEvents, relativemetricTimeline):
+        self.doi = doi
+        self.publicationTimestamp = publicationTimestamp
+        self.citeULikeTimeline = citeULikeTimeline
+        self.pubmedTimeline = pubmedTimeline
+        self.scopusTimeline = scopusTimeline
+        self.pmcTimeline = pmcTimeline
+        self.pmcEvents = pmcEvents
+        self.facebookTimeline = DocumentTimelines.repairTwitterTimeline(facebookTimeline) # facebookTimeline
+        self.mendeleyTimeline = mendeleyTimeline
+        self.crossrefTimeline = crossrefTimeline
+        self.counterTimeline = counterTimeline
+        self.counterEvents = counterEvents
+        self.relativemetricTimeline = relativemetricTimeline
+
+    @classmethod
+    def fromJsonArr(cls, data, trimmed=False, sort=True):
+        if trimmed:
+            if sort:
+                return cls(data[0], data[1], sorted(data[2], key=lambda x: x[0]), 
+                    sorted(data[3], key=lambda x: x[0]), sorted(data[4], key=lambda x: x[0]), 
+                    sorted(data[5], key=lambda x: x[0]), None, sorted(data[6], key=lambda x: x[0]), 
+                    sorted(data[7], key=lambda x: x[0]), sorted(data[8], key=lambda x: x[0]), 
+                    sorted(data[9], key=lambda x: x[0]), None, sorted(data[10], key=lambda x: x[0]))
+            else:
+                return cls(data[0], data[1], data[2], data[3], data[4], data[5], None,
+                    data[6], data[7], data[8], data[9], None, data[10])
+        else:
+            if sort:
+                return cls(data[0], data[1], sorted(data[2], key=lambda x: x[0]), 
+                    sorted(data[3], key=lambda x: x[0]), sorted(data[4], key=lambda x: x[0]),
+                    sorted(data[5], key=lambda x: x[0]), data[6], sorted(data[7], key=lambda x: x[0]), 
+                    sorted(data[8], key=lambda x: x[0]), sorted(data[9], key=lambda x: x[0]), 
+                    sorted(data[10], key=lambda x: x[0]), data[11], sorted(data[12], key=lambda x: x[0]))
+            else:
+                return cls(*data)
+
+    @classmethod
+    def fromFile(cls, filename, trimmed=False, sort=True):
+        lines = open(filename, "r")
+        return [ DocumentTimelines.fromJsonArr(json.loads(line), trimmed, sort) for line in lines ]
+
+    @classmethod
+    def trimTimeline(cls, timeline):
+        newTimeline = []
+
+        if len(timeline) != 0:
+            newTimeline.append(timeline[0])
+            for i in range(1, len(timeline)-1):
+                if not (timeline[i-1][1] == timeline[i][1] and timeline[i][1] == timeline[i+1][1]):
+                    newTimeline.append(timeline[i])
+            if len(timeline) != 1:
+                newTimeline.append(timeline[-1])
+
+        return newTimeline
+
+    @classmethod
+    def valueAtTime(cls, sortedTimeline, time, tolerance):
+        # cant say anything if timeline is empty
+        if len(sortedTimeline) == 0:
+            return None, 0
+
+        # if one point happens to match exactly, return that value
+        for point in sortedTimeline:
+            if point[0] == time:
+                return point[1], 1
+
+        firstTimestamp = sortedTimeline[0][0]
+        lastTimestamp = sortedTimeline[-1][0]
+
+        if time < firstTimestamp:
+            if time+tolerance >= firstTimestamp:
+                return sortedTimeline[0][1], 2
+            elif sortedTimeline[0][1] == 0:
+                return 0, 3
+            else:
+                return None, 4
+        elif time > lastTimestamp:
+            if time-tolerance <= firstTimestamp:
+                return sortedTimeline[-1][1], 5
+            else:
+                return None, 6
+        else:
+            ind = 0
+            while sortedTimeline[ind][0]<time: # cannot go out of bounds because time must be smaller than the last point in time
+                ind += 1
+
+            pointBeforeTime = sortedTimeline[ind-1]
+            pointAfterTime = sortedTimeline[ind]
+
+            if pointBeforeTime[1] == pointAfterTime[1]:
+                return pointBeforeTime[1], 7
+            else:
+                diffToBefore = time-pointBeforeTime[0]
+                diffToAfter = pointAfterTime[0]-time
+
+                if diffToBefore <= diffToAfter: # and diffToBefore <= tolerance:
+                    return pointBeforeTime[1], 8
+                elif diffToAfter < diffToBefore: # and diffToAfter <= tolerance:
+                    return pointAfterTime[1], 9
+                # elif pointBeforeTime[1] == 0 and pointAfterTime[1] < 5:
+                #     return pointAfterTime[1] / 2, 10
+                else:
+                    # f = interpolate.interp1d(map(lambda x: x[0], timeline), map(lambda x: x[1], timeline))
+
+                    # if pointBeforeTime[1] == 0 and pointAfterTime[1] >= 5:
+                    #     return None, 11
+
+                    # diff = float(pointAfterTime[1]) / pointBeforeTime[1]
+                    return None, 13
+                    #return (float(pointAfterTime[1]) + pointBeforeTime[1])/2, 12
+                    """if diff < 1.1:
+                        return (float(pointBeforeTime[1]) + pointAfterTime[1]) / 2, 12
+                    else:
+                        return None, 13"""
+
+    @classmethod
+    def repairTwitterTimeline(cls, timeline):
+        decreaseIndex = None
+
+        for ind in range(0, len(timeline)-1):
+            if timeline[ind][1] >= 1.5*timeline[ind+1][1]:
+                decreaseIndex = ind
+                break
+
+        if decreaseIndex != None:
+            lastHighIncreaseIndex = None
+            for ind in range(0, decreaseIndex):
+                if timeline[ind][1]*3 <= timeline[ind+1][1]:
+                    lastHighIncreaseIndex = ind+1
+
+            newTimeline = []
+            for ind in range(0, len(timeline)):
+                decrease = ((not decreaseIndex or ind <= decreaseIndex) and (not lastHighIncreaseIndex or ind >= lastHighIncreaseIndex))
+                if decrease:
+                    newTimeline.append([timeline[ind][0], timeline[ind][1]/3])
+                else:
+                    newTimeline.append(timeline[ind])
+            return newTimeline
+        return timeline
+
+    def trimmed(self):
+        return DocumentTimelines(
+            self.doi,
+            self.publicationTimestamp,
+            DocumentTimelines.trimTimeline(self.citeULikeTimeline), 
+            DocumentTimelines.trimTimeline(self.pubmedTimeline), 
+            DocumentTimelines.trimTimeline(self.scopusTimeline), 
+            DocumentTimelines.trimTimeline(self.pmcTimeline), 
+            self.pmcEvents, 
+            DocumentTimelines.trimTimeline(self.facebookTimeline),
+            DocumentTimelines.trimTimeline(self.mendeleyTimeline), 
+            DocumentTimelines.trimTimeline(self.crossrefTimeline), 
+            DocumentTimelines.trimTimeline(self.counterTimeline), 
+            self.counterEvents, 
+            DocumentTimelines.trimTimeline(self.relativemetricTimeline)
+        )
+
+    def toJson(self, trimmed=False):
+        if trimmed:
+            return json.dumps([ self.doi, self.publicationTimestamp, self.citeULikeTimeline, 
+                self.pubmedTimeline, self.scopusTimeline, self.pmcTimeline, 
+                self.facebookTimeline, self.mendeleyTimeline, self.crossrefTimeline, 
+                self.counterTimeline, self.relativemetricTimeline ])
+        else:
+            return json.dumps([ self.doi, self.publicationTimestamp, self.citeULikeTimeline, 
+                self.pubmedTimeline, self.scopusTimeline, self.pmcTimeline, self.pmcEvents, 
+                self.facebookTimeline, self.mendeleyTimeline, self.crossrefTimeline, 
+                self.counterTimeline, self.counterEvents, self.relativemetricTimeline ])
+
 def rankCorrelation(x, y):
     numPairs = len(x)
     pairs = zip(range(0, numPairs), x, y)
@@ -558,3 +715,21 @@ def allCorrelations(x, y):
     pearson = pearsonCorrelation(x, y)
 
     return pearson, kendall, spearman
+
+mendeleyDisciplines = [
+    'Linguistics', 'Economics', 'Psychology', 'Humanities', 'Materials Science', 
+    'Earth Sciences', 'Environmental Sciences', 'Biological Sciences', 'Medicine', 
+    'Mathematics', 'Chemistry', 'Physics', 'Social Sciences', 'Electrical and Electronic Engineering', 
+    'Astronomy / Astrophysics / Space Science', 'Sports and Recreation', 
+    'Management Science / Operations Research', 'Philosophy', 'Law', 
+    'Business Administration', 'Engineering', 'Design', 'Arts and Literature', 
+    'Education', 'Computer and Information Science'
+]
+
+def groupCount(l):
+    d = { }
+
+    for x in l:
+        d[x] = d.get(x, 0) + 1
+
+    return list(d.items())

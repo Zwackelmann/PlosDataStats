@@ -321,7 +321,7 @@ def mendeleyDisciplines():
     )
 
 def crossrefVsTwitter(yearBounds = [None, None], minTweetAge = None, maxTweetAge = None):
-    tweetVsCitationList = []
+    tweetVsCrossrefList = []
     minTweetAge = 60*60*24*0
     maxTweetAge = 60*60*24*100
 
@@ -349,7 +349,7 @@ def crossrefVsTwitter(yearBounds = [None, None], minTweetAge = None, maxTweetAge
         nullWeights += sum((1 for weight in userWeights if weight is None))
         nonNullWeights += sum((1 for weight in userWeights if not weight is None))
 
-        tweetVsCitationList.append([doc.numCitations(), 0 if len(userWeights) == 0 else sum(filter(lambda weight: weight != None, userWeights))])
+        tweetVsCrossrefList.append([doc.numCrossrefs(), 0 if len(userWeights) == 0 else sum(filter(lambda weight: weight != None, userWeights))])
         totalDocs += 1
         totalTweets += len(docsTweets)
 
@@ -357,13 +357,13 @@ def crossrefVsTwitter(yearBounds = [None, None], minTweetAge = None, maxTweetAge
     print totalTweets
     print float(nullWeights) / (nullWeights+nonNullWeights)
 
-    # tweetVsCitationList = sorted(tweetVsCitationList, key=lambda tc: tc[1], reverse=True)[:100]
-    x, y = zip(*tweetVsCitationList)
+    # tweetVsCrossrefList = sorted(tweetVsCrossrefList, key=lambda tc: tc[1], reverse=True)[:100]
+    x, y = zip(*tweetVsCrossrefList)
     paperFigure(plt)
     plt.scatter(x, y)
     # plt.title("Korrelation zwischen Tweets und Zitationen (Papieren zwischen " + str(yearBounds[0]) + " und " + str(yearBounds[1]) + "; #Docs: " + str(totalDocs) + ")")
     plt.ylabel("#Tweets")
-    plt.xlabel("#Citations")
+    plt.xlabel("#Crossrefs")
     #plt.xlim((0,200))
     #plt.ylim((0,30))
 
@@ -415,8 +415,8 @@ def tweetVsViewCounts():
 
     totalDocs = 0
     for doc in twitterHorizonDocs():
-        if(len(doc.tweets) != None and doc.citationWeight(method = "max") != None):
-            tweetVsViewCountList.append([doc.citationWeight(method = "max"), doc.numTweets()])
+        if(len(doc.tweets) != None and doc.crossrefWeight(method = "max") != None):
+            tweetVsViewCountList.append([doc.crossrefWeight(method = "max"), doc.numTweets()])
             totalDocs += 1
 
     x, y = zip(*tweetVsViewCountList)
@@ -424,7 +424,7 @@ def tweetVsViewCounts():
     plt.figure()
 
     plt.scatter(x, y)
-    plt.title("Korrelation zwischen Tweets und citation weight")
+    plt.title("Korrelation zwischen Tweets und crossref weight")
     plt.ylabel("#Tweets")
     plt.xlabel("itation weight")
 
@@ -545,7 +545,7 @@ def correlationsForQuartals():
     for quartal in quartals:
         docs = filter(lambda doc: docInQuartal(doc, quartal) and doc.mendeleyReaders != None, allDocs)
         print len(docs)
-        x, y = zip(*map(lambda doc: [len(doc.tweets), doc.citationTimeline[0].totalCitations], docs))
+        x, y = zip(*map(lambda doc: [len(doc.tweets), doc.crossrefTimeline[0].totalCrossrefs], docs))
 
         coefficients.append(korrelationskoeffizient(x, y))
 
@@ -618,10 +618,10 @@ def groupByJournalAndVolume():
     correlationValues = []    
     for ident, docs in validGroups:
         docTweets = map(lambda doc: doc.numTweets(), docs)
-        docCitations = map(lambda doc: doc.numCitations(), docs)
+        docCrossrefs = map(lambda doc: doc.numCrossrefs(), docs)
         korr = None
 
-        # docTweetCitationRatios = map(lambda doc: [float(doc.numTweets()) / doc.numCitations() if doc.numCitations() != 0 else float('nan')], docs)
+        # docTweetCrossrefRatios = map(lambda doc: [float(doc.numTweets()) / doc.numCrossrefs() if doc.numCrossrefs() != 0 else float('nan')], docs)
 
         maxYear = max(map(lambda doc: doc.publicationDatetime().year, docs))
         minYear = min(map(lambda doc: doc.publicationDatetime().year, docs))
@@ -633,12 +633,12 @@ def groupByJournalAndVolume():
             yearRange = str(minYear) + "-" + str(maxYear)
 
         try:
-            korr = "%2.3f" % korrelationskoeffizient(docTweets, docCitations)
+            korr = "%2.3f" % korrelationskoeffizient(docTweets, docCrossrefs)
         except ZeroDivisionError:
             korr = "NaN"
             
         # correlationValues.append([ident[0], ident[1], len(docs), "%2.2f" % numpy.mean(docTweets), "%2.2f" % numpy.std(docTweets), korr, yearRange])
-        correlationValues.append([ident[0], ident[1], len(docs), "%2.2f" % numpy.mean(docTweets), "%2.2f" % numpy.mean(docCitations), "%2.2f" % (float(numpy.sum(docTweets))/numpy.sum(docCitations)),  yearRange])
+        correlationValues.append([ident[0], ident[1], len(docs), "%2.2f" % numpy.mean(docTweets), "%2.2f" % numpy.mean(docCrossrefs), "%2.2f" % (float(numpy.sum(docTweets))/numpy.sum(docCrossrefs)),  yearRange])
         # correlationValues.append([ident, len(docs), "%2.2f" % numpy.mean(docTweets), "%2.2f" % numpy.std(docTweets), korr])
 
     correlationValues = sorted(correlationValues, key=lambda x: x[0])
@@ -772,7 +772,7 @@ def tweetHist():
     plt.hist(numTweets, bins=xrange(0, 150, 5))
     
     plt.figure()
-    numCite = [doc.numCitations() for doc in docs]
+    numCite = [doc.numCrossrefs() for doc in docs]
     plt.hist(numCite, bins=xrange(0, 150, 5))
     plt.show()
 

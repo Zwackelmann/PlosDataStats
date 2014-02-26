@@ -10,6 +10,7 @@ def formatHist(hist):
     print '     ' + str(map(lambda x: "%5d" % x, hist[0]))
     print map(lambda x: "%5d" % x, hist[1])
 
+
 """path = "/home/toennies/plosALM/data/"
 files = [ f for f in listdir(path) if isfile(join(path,f)) ]
         

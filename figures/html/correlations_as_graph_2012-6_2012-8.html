@@ -52,24 +52,7 @@ var links = [
   {"source": "pdfViews", "target": "pmcPdf", "weight": 0.42219684895810783},
   {"source": "htmlViews", "target": "facebookShares", "weight": 0.40915012126466738},
   {"source": "htmlViews", "target": "numTweets", "weight": 0.45342188240589887},
-  {"source": "citeULikeShares", "target": "connoteaCitations", "weight": 0.70651671168930597},
-  {"source": "citeULikeShares", "target": "natureCitations", "weight": 0.49880497031848975},
-  {"source": "citeULikeShares", "target": "postgenomicCitations", "weight": 0.70651671168930597},
   {"source": "citeULikeShares", "target": "facebookComments", "weight": 0.41224735977357213},
-  {"source": "connoteaCitations", "target": "natureCitations", "weight": 0.99437865515999269},
-  {"source": "connoteaCitations", "target": "postgenomicCitations", "weight": 0.99999999999999967},
-  {"source": "connoteaCitations", "target": "facebookShares", "weight": 0.46934801490036515},
-  {"source": "connoteaCitations", "target": "facebookComments", "weight": 0.71758223267124022},
-  {"source": "connoteaCitations", "target": "facebookLikes", "weight": 0.65149031097275212},
-  {"source": "connoteaCitations", "target": "mendeleyGroups", "weight": 0.81289968436163251},
-  {"source": "natureCitations", "target": "postgenomicCitations", "weight": 0.99437865515999269},
-  {"source": "natureCitations", "target": "facebookComments", "weight": 0.53220898660281968},
-  {"source": "natureCitations", "target": "facebookLikes", "weight": 0.48658369990795219},
-  {"source": "natureCitations", "target": "mendeleyGroups", "weight": 0.53540849616793917},
-  {"source": "postgenomicCitations", "target": "facebookShares", "weight": 0.46934801490036515},
-  {"source": "postgenomicCitations", "target": "facebookComments", "weight": 0.71758223267124022},
-  {"source": "postgenomicCitations", "target": "facebookLikes", "weight": 0.65149031097275212},
-  {"source": "postgenomicCitations", "target": "mendeleyGroups", "weight": 0.81289968436163251},
   {"source": "pubmedCitations", "target": "scopusCitations", "weight": 0.60657975683839116},
   {"source": "pubmedCitations", "target": "crossref", "weight": 0.42793698837307259},
   {"source": "scopusCitations", "target": "crossref", "weight": 0.6950265029192092},
@@ -82,7 +65,7 @@ var links = [
   {"source": "facebookLikes", "target": "numTweets", "weight": 0.40339024351308606},
 ];
 
-var nodeWeights = {"pmcPdf": 1.0, "htmlViews": 1.0, "connoteaCitations": 0.0, "crossref": 0.6704798692616253, "mendeleyGroups": 0.11172188382112613, "citeULikeShares": 0.1534690239191799, "facebookLikes": 0.15926311097905216, "numTweets": 0.5190907740306047, "facebookShares": 0.3228346456692913, "postgenomicCitations": 0.0, "mendeleyReaders": 1.0, "facebookComments": 0.12583568563363542, "pdfViews": 1.0, "scopusCitations": 0.696181845193879, "relativemetricTotal": 1.0, "natureCitations": 0.002377061357896301, "pmcHtml": 1.0, "pubmedCitations": 0.4531273213489823}
+var nodeWeights = {"pmcPdf": 1.0, "htmlViews": 1.0, "crossref": 0.6704798692616253, "mendeleyGroups": 0.11172188382112613, "citeULikeShares": 0.1534690239191799, "facebookLikes": 0.15926311097905216, "numTweets": 0.5190907740306047, "facebookShares": 0.3228346456692913, "mendeleyReaders": 1.0, "facebookComments": 0.12583568563363542, "pdfViews": 1.0, "scopusCitations": 0.696181845193879, "relativemetricTotal": 1.0, "pmcHtml": 1.0, "pubmedCitations": 0.4531273213489823}
 
 var nodes = {};
 
@@ -99,9 +82,13 @@ var force = d3.layout.force()
     .nodes(d3.values(nodes))
     .links(links)
     .size([width, height])
-    .linkDistance(150)
-    .charge(-500)
+    .linkDistance(80)
+    .linkStrength(0)
+    .gravity(0)
+    //.chargeDistance(0)
+    .charge(0)
     .on("tick", tick)
+    .theta(0)
     .start();
 
 var svg = d3.select("body").append("svg")

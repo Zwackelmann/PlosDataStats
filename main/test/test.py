@@ -1,18 +1,17 @@
-class Test:
-    def __init__(self, foo):
-        self.foo = foo
+import json
+import matplotlib.pyplot as plt
+from main.util.common import SimpleDoc
+import numpy as np
 
-    def sayFoo(self):
-        return self.foo * 3
+docs = SimpleDoc.getallBetween((2012, 6), (2012, 8))
 
-l = [("sayFoo", True), ("foo", False)]
+avgTweetsOnDay = []
+for relDay in range(0, 365):
+    tweetsOnDay = []
+    for doc in docs:
+        tweetsOnDay.append(len(filter(lambda tweet: tweet.timestamp < doc.publicationTimestamp+(relDay*60*60*24), doc.tweets)))
+    avgTweetsOnDay.append(np.mean(tweetsOnDay))
 
-x1 = Test("hallo")
+print avgTweetsOnDay
 
-for att, call in l:
-    if call:
-        x = getattr(x1, att)()
-    else:
-        x = getattr(x1, att)
 
-    print x
