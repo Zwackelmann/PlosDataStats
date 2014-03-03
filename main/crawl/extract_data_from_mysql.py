@@ -1,14 +1,6 @@
-import MySQLdb
-import json
+from main.util.db import openDb
 
-conf = json.loads(open("mysqlconnect.json"))
-
-db = MySQLdb.connect(
-    host=conf['host'],
-    user=conf['user'],
-    passwd=conf['passwd'],
-    db=conf['db']
-)
+db = openDb("stuff/localconnect.json")
 
 cur = db.cursor() 
 cur.execute("SELECT * FROM users_twitter")

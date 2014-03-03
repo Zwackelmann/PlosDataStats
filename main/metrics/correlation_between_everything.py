@@ -213,8 +213,6 @@ def findCorr(corrs, corrFrom, corrTo, method="spearman"):
     else:
         return None
 
-
-
 def biggestDifferencesBetweenCorrelations():
     corrAll = CorrelationItem.fromFile("pairwise_corr_all_documents.json")
     corrNew = CorrelationItem.fromFile("pairwise_corr_2012-6_2012-8.json")
@@ -318,8 +316,8 @@ attributePrintNames = map(lambda x: x[2], attributeList)
 calls = map(lambda x: x[0], attributeList)
 
 # statistical values for each metric:
-"""
-for ind, attr in zip(range(0, len(attributeList)), attributeList):
+
+"""for ind, attr in zip(range(0, len(attributeList)), attributeList):
     call = attr[0]
     lowerBound = attr[1]
     attName = attr[0][0]
@@ -333,23 +331,19 @@ for ind, attr in zip(range(0, len(attributeList)), attributeList):
 """
 
 
-# docs = SimpleDoc.getallBetween((2012, 6), (2012, 8))
+# docs = SimpleDoc.getallBetween((2012, 5), (2012, 8))
 
-"""
-matrix = getAttributeValueMatrix(docs, calls)
+"""matrix = getAttributeValueMatrix(docs, calls)
 corrs = correlationBetweenEverything(matrix, attributeNames)
 
 f = open("foo", "w")
 for corr in corrs:
     f.write(corr.toJson() + "\n")
-f.close()
-"""
+f.close()"""
 
+corrs = CorrelationItem.fromFile("stuff/pairwise_corr_2012-6_2012-8.json")
 
-# corrs = CorrelationItem.fromFile("stuff/pairwise_corr_2012-6_2012-8.json")
-
-"""
-f = open("foo", "w")
+"""f = open("foo", "w")
 m = []
 for a1 in attributeNames:
     row = []
@@ -360,9 +354,8 @@ for a1 in attributeNames:
 f.write("\t" + "\t".join(attributePrintNames) + "\n")
 for row, att in zip(m, attributePrintNames):
     f.write(att + "\t" + ("\t".join(map(lambda x: "%2.3f" % x, row))) + "\n")
-f.close()
-"""
+f.close()"""
 
 attributeNameTranslation = dict(zip(attributeNames, attributePrintNames))
-corrData, weightData = corrGraphData(corrs, method = "spearman", threshold=0.385, attributeNameTranslation=attributeNameTranslation)
+corrData, weightData = corrGraphData(corrs, method = "spearman", threshold=0.7, attributeNameTranslation=attributeNameTranslation)
 writeGraphToFile(corrData, weightData, animated=True)

@@ -9,6 +9,7 @@ import calendar
 from scipy import stats
 import math
 from dateutil.parser import parse
+import itertools
 
 relativeDataPath = "data"
 relativeFigurePath = "figures"
@@ -74,6 +75,22 @@ def doForEachPlosDoc(fun, maxDocs=None, verbose=False):
                 fun(docMetadata)
     else:
         raise BaseException("not running on TBDB")
+
+def doForEachDocInPath(dirpath, fun, maxDocs=None, verbose=False):
+    count = 0
+    filenames = [ f for f in os.listdir(dirpath) if path.isfile(path.join(dirpath,f)) ]
+
+    for filename in filenames:
+        fullPath = path.join(dirpath, filename)
+        docMetadataList = readAsJson(fullPath)
+        for docMetadata in docMetadataList:
+            count += 1
+            if verbose and count%100 == 0:
+                print count
+            if maxDocs and count >= maxDocs:
+                return
+
+            fun(docMetadata)
 
 simpleDocsFilename = "relevant_document_data.json"
 simpleDocsPath = path.join(dataBasePath, simpleDocsFilename)
@@ -210,8 +227,11 @@ class SimpleDoc:
     def numCrossrefs(self):
         return max(map(lambda c: c.totalCitations, self.crossrefTimeline))
 
-    def averageCrossref(self):
+    def averageCitations(self):
         return numpy.mean([self.numCrossrefs(), self.scopusCitations, self.pubmedCitations])
+
+    def maxCitations(self):
+        return max([self.numCrossrefs(), self.scopusCitations, self.pubmedCitations])
 
     def tweetTimespan(self):
         timestamps = map(lambda tweet: tweet.timestamp, self.tweets)
@@ -280,6 +300,11 @@ class SimpleDoc:
     @classmethod
     def readCorpus(cls):
         lines = open(simpleDocsPath)
+        return [SimpleDoc(json.loads(line)) for line in lines]
+
+    @classmethod
+    def fromFile(cls, filePath):
+        lines = open(filePath)
         return [SimpleDoc(json.loads(line)) for line in lines]
 
     @classmethod
@@ -664,7 +689,7 @@ class DocumentTimelines:
                 self.counterTimeline, self.counterEvents, self.relativemetricTimeline ])
 
 def rankCorrelation(x, y):
-    numPairs = len(x)
+    """numPairs = len(x)
     pairs = zip(range(0, numPairs), x, y)
 
     identsByX = map( lambda pair: pair[0],
@@ -688,7 +713,10 @@ def rankCorrelation(x, y):
         identsByY2.append(identsByXRank[ident])
 
     tau, pValue1 = stats.kendalltau(identsByX2, identsByY2)
-    r, pValue2 = stats.spearmanr(identsByX2, identsByY2)
+    r, pValue2 = stats.spearmanr(identsByX2, identsByY2)"""
+
+    tau, pValue1 = stats.kendalltau(x, y)
+    r, pValue2 = stats.spearmanr(x, y)
 
     return tau, pValue1, r, pValue2
 
@@ -733,3 +761,28 @@ def groupCount(l):
         d[x] = d.get(x, 0) + 1
 
     return list(d.items())
+
+def powerset(a):
+    for subset in itertools.chain.from_iterable(itertools.combinations(a, r) for r in range(len(a)+1)):
+        yield set(subset)
+
+class Log:
+    def __init__(self, filename=None, verbose=True):
+        self.filename = filename
+        self.verbose = verbose
+
+        if self.filename==None:
+            True # Do nothing
+        else:
+            self.filehandle = open(filename, "w")
+
+    def log(self, s):
+        if self.filename != None:
+            self.filehandle.write(s + "\n")
+
+        if self.filename==None or self.verbose:
+            print s
+
+    def close(self):
+        if self.filename != None:
+            self.filehandle.close()
