@@ -5,3 +5,7 @@ project.subl
 project.sublime-workspace
 tmp
 stuff
+<<<<<<< HEAD
+=======
+mysqlconnect.json
+>>>>>>> c1d847f9933d66a47795fd212c3631dbcb27ee29

@@ -3,6 +3,10 @@ import math
 import json
 import numpy as np
 import itertools
+<<<<<<< HEAD
+=======
+from main.util.graph import writeGraphToFile
+>>>>>>> c1d847f9933d66a47795fd212c3631dbcb27ee29
 
 def applyCall(obj, call):
     x = getattr(obj, call[0])
@@ -54,6 +58,7 @@ def corrcoeff(x, y):
     else:
         return sumErrorProducts / math.sqrt(xSquareError*ySquareError)
 
+<<<<<<< HEAD
 def correlationBetweenEverything(matrix, filename):
     f = open(filename, "w")
     pairs = [(x, y) for x in range(0, numAttributes) for y in range(0, numAttributes)]
@@ -64,6 +69,19 @@ def correlationBetweenEverything(matrix, filename):
         corr = CorrelationItem(
             corrFrom = attributeNames[pair[0]], 
             corrTo = attributeNames[pair[1]], 
+=======
+def correlationBetweenEverything(matrix, attributeNames):
+    numAttributes = len(attributeNames)
+    pairs = [(x, y) for x in range(0, numAttributes) for y in range(x+1, numAttributes)]
+
+    correlationItems = [ ]
+    for corrFrom, corrTo in pairs:
+        pearson, tau, r, p1, numPairs, leftZeroPairs, rightZeroPairs, bothZeroPairs = correlationBetweenAttributes(matrix, corrFrom, corrTo)
+
+        correlationItems.append(CorrelationItem(
+            corrFrom = attributeNames[corrFrom], 
+            corrTo = attributeNames[corrTo], 
+>>>>>>> c1d847f9933d66a47795fd212c3631dbcb27ee29
             numValidPairs = numPairs, 
             leftZeroPairs = leftZeroPairs,
             rightZeroPairs = rightZeroPairs, 
@@ -72,11 +90,17 @@ def correlationBetweenEverything(matrix, filename):
             spearman = r, 
             pearson = pearson, 
             pValue = p1
+<<<<<<< HEAD
         )
         f.write(corr.toJson() + "\n")
         print corr.prettyPrint() + "\n\n"
 
     f.close()
+=======
+        ))
+
+    return correlationItems
+>>>>>>> c1d847f9933d66a47795fd212c3631dbcb27ee29
 
 
 def correlationBetweenAttributes(matrix, i, j):
@@ -150,6 +174,7 @@ class CorrelationItem:
         lines = open(filename)
         return [ cls.fromJson(line) for line in lines ]
 
+<<<<<<< HEAD
 # mendeleyShares = mendeleyReaders => removed ("mendeleyShares", None)
 # mendeleyTotal = mendeleyReaders => removed ("mendeleyTotal", None)
 # citeULikeShares = citeULikeTotal => removed ("citeULikeTotal", None)
@@ -194,6 +219,10 @@ for corrPair in sortedCorrDiffs[:50]:
     print ""
     print corrPair[1].prettyPrint()
     print "\n\n"""
+=======
+def getAttributeValueMatrix(docs, callList):
+    return map(lambda doc: map(lambda call: applyCall(doc, call), callList), docs)
+>>>>>>> c1d847f9933d66a47795fd212c3631dbcb27ee29
 
 def findMirrorPairIndex(corrs, ind):
     corr1 = corrs[ind]
@@ -225,6 +254,7 @@ def removeReflexiveCorrs(corrs):
         del corrs[delIndex]
         return removeReflexiveCorrs(corrs)
 
+<<<<<<< HEAD
 corrs = CorrelationItem.fromFile("pairwise_corr_2012-6_2012-8.json")
 filteredCorrs = removeReflexiveCorrs(removeAllMirrorPairs(corrs))
 
@@ -232,10 +262,21 @@ def findCorr(corrs, corrFrom, corrTo):
     reverse = False
     targetIndex = next( (i for i in xrange(0, len(corrs)) if corrs[i].corrFrom==corrFrom and corrs[i].corrTo==corrTo), None)
     
+=======
+def findCorr(corrs, corrFrom, corrTo, method="spearman"):
+    if corrFrom == corrTo:
+        return 1.0
+
+    reverse = False
+    targetIndex = next( (i for i in xrange(0, len(corrs)) if corrs[i].corrFrom==corrFrom and corrs[i].corrTo==corrTo), None)
+    targetCorr = None
+
+>>>>>>> c1d847f9933d66a47795fd212c3631dbcb27ee29
     if targetIndex == None:
         targetIndex = next( (i for i in xrange(0, len(corrs)) if corrs[i].corrFrom==corrTo and corrs[i].corrTo==corrFrom), None)
         if targetIndex != None:
             reverse = True
+<<<<<<< HEAD
             return corrs[targetIndex].correlation()
         else:
             return None
@@ -274,3 +315,169 @@ for corr in filteredCorrs:
     weight[corr.corrFrom] = numDocuments-corr.leftZeroPairs
 
 print json.dumps(dict([(k, float(v)/numDocuments) for k, v in weight.items()]))"""
+=======
+            targetCorr = corrs[targetIndex]
+    else:
+        targetCorr = corrs[targetIndex]
+
+    if targetCorr != None:
+        if method=="spearman":
+            return targetCorr.spearman
+        elif method=="kendall":
+            return targetCorr.kendall
+        elif method=="pearson":
+            return targetCorr.pearson
+        elif method=="avg":
+            return targetCorr.correlation()
+        else:
+            raise ValueError( "Unknown correlation method " + method + ". (Try \"spearman\", \"kendall\", \"pearson\" or \"avg\")" )
+    else:
+        return None
+
+def biggestDifferencesBetweenCorrelations():
+    corrAll = CorrelationItem.fromFile("pairwise_corr_all_documents.json")
+    corrNew = CorrelationItem.fromFile("pairwise_corr_2012-6_2012-8.json")
+
+    corrPairs = [ [corr1, corr2] for corr1 in corrAll for corr2 in corrNew if corr1.corrFrom==corr2.corrFrom and corr1.corrTo==corr2.corrTo ]    
+
+    corrDiffs = []
+    for corrPair in corrPairs:
+        attFrom = corrPair[0].corrFrom
+        attTo = corrPair[0].corrTo
+
+        diff = abs(corrPair[0].correlation()-corrPair[1].correlation())
+        corrDiffs.append([diff, corrPair])
+
+    sortedCorrDiffs = map(lambda x: x[1], sorted(corrDiffs, key=lambda x: x[0], reverse=True))
+
+    for corrPair in sortedCorrDiffs[:50]:
+        print corrPair[0].prettyPrint()
+        print ""
+        print corrPair[1].prettyPrint()
+        print "\n\n"""
+
+def printCorrelations(corrs, attributeNames):
+    filteredCorrs = removeReflexiveCorrs(removeAllMirrorPairs(corrs))
+
+    f = open("foo", "w")
+    for corr1 in attributeNames:
+        corrsForAttribute = []
+        for corr2 in attributeNames:
+            c = findCorr(corrs, corr1, corr2)
+            corrsForAttribute.append(str(c) if not c is None else "None")
+
+        f.write("\t".join(corrsForAttribute) + "\n")
+    f.close()
+
+def corrGraphData(corrs, threshold=0.4, method="spearman", attributeNameTranslation = {}):
+    corrsOut = []
+
+    for corr in corrs:
+        corrValue = None
+        if method=="spearman":
+            if corr.spearman > threshold:
+                corrValue = corr.spearman
+        elif method=="kendall":
+            if corr.kendall > threshold:
+                corrValue = corr.kendall
+        elif method=="pearson":
+            if corr.pearson > threshold:
+                corrValue = corr.pearson
+        elif method=="avg":
+            if corr.correlation() > threshold:
+                corrValue = corr.correlation()
+        else:
+            raise ValueError( "Unknown method " + method + " for correlation graph creation. (Try \"spearman\", \"kendall\", \"pearson\" or \"avg\")" )
+        corrsOut.append({ 
+            "source" : attributeNameTranslation.get(corr.corrFrom, corr.corrFrom), 
+            "target" : attributeNameTranslation.get(corr.corrTo, corr.corrTo),
+            "weight" : corrValue
+        })
+
+    numDocuments = max(map(lambda corr: corr.numValidPairs, corrs))
+
+    weight = { }
+    for corr in corrs:
+        weight[corr.corrFrom] = numDocuments-corr.leftZeroPairs
+        weight[corr.corrTo] = numDocuments-corr.rightZeroPairs
+
+    weightsOut = dict([(attributeNameTranslation.get(k, k), float(v)/numDocuments) for k, v in weight.items()])
+
+    return corrsOut, weightsOut
+
+# mendeleyShares = mendeleyReaders => removed ("mendeleyShares", None)
+# mendeleyTotal = mendeleyReaders => removed ("mendeleyTotal", None)
+# citeULikeShares = citeULikeTotal => removed ("citeULikeTotal", None)
+# scopusCitations = scopusTotal => removed ("scopusTotal", None)
+# pubmedTotal = pubmedCitations => removed ("pubmedTotal", None)
+# natureTotal = natureCitations => removed ("natureTotal", None)
+# postgenomicTotal = postgenomicCitations => removed ("postgenomicTotal", None)
+# connoteaTotal = connoteaCitations => removed ("connoteaTotal", None)
+# ("facebookTotal", None) removed
+
+# (("natureCitations", None), None), (("connoteaCitations", None), None), (("postgenomicCitations", None), None), , (("mendeleyGroups", None), (2012,1))
+attributeList = [
+    (("numTweets", ()), (2012, 5), "Tweets"), 
+    (("facebookShares", None), (2011, 12), "Facebook shares"), 
+    (("facebookComments", None), (2011, 12), "Facebook comments"), 
+    (("facebookLikes", None), (2011, 12), "Facebook Likes"), 
+    (("mendeleyReaders", None), (2012, 1), "Mendeley readers"), 
+    (("citeULikeShares", None), (2009, 3), "CiteULike shares"), 
+    (("htmlViews", None), (2009, 9), "PLOS HTML views"), 
+    (("pdfViews", None), (2009, 9), "PLOS PDF views"), 
+    (("pmcHtml", None), (2011, 6), "PMC HTML views"), 
+    (("pmcPdf", None), (2011, 6), "PMC PDF views"), 
+    (("numCrossrefs", ()), (2009, 3), "CrossRef citations"),
+    (("pubmedCitations", None), (2009, 3), "PubMed citations"), 
+    (("scopusCitations", None), (2009, 3), "Scopus citations")
+]
+
+attributeNames = map(lambda x: x[0][0], attributeList)
+attributePrintNames = map(lambda x: x[2], attributeList)
+calls = map(lambda x: x[0], attributeList)
+
+# statistical values for each metric:
+
+"""for ind, attr in zip(range(0, len(attributeList)), attributeList):
+    call = attr[0]
+    lowerBound = attr[1]
+    attName = attr[0][0]
+
+    valuesForMetric = filter(lambda x: x != None, map(lambda doc: applyCall(doc, call),
+        SimpleDoc.getallBetween(lowerBound, None)
+    ))
+
+    minV, maxV, meanV, std = min(valuesForMetric), max(valuesForMetric), np.mean(valuesForMetric), np.std(valuesForMetric)
+    print attName + "\t" + "\t".join(map(lambda x: str(x), [minV, maxV, meanV, std]))
+"""
+
+
+# docs = SimpleDoc.getallBetween((2012, 5), (2012, 8))
+
+"""matrix = getAttributeValueMatrix(docs, calls)
+corrs = correlationBetweenEverything(matrix, attributeNames)
+
+f = open("foo", "w")
+for corr in corrs:
+    f.write(corr.toJson() + "\n")
+f.close()"""
+
+corrs = CorrelationItem.fromFile("stuff/pairwise_corr_2012-6_2012-8.json")
+
+"""f = open("foo", "w")
+m = []
+for a1 in attributeNames:
+    row = []
+    for a2 in attributeNames:
+        row.append(findCorr(corrs, a1, a2, method="spearman"))
+    m.append(row)
+
+f.write("\t" + "\t".join(attributePrintNames) + "\n")
+for row, att in zip(m, attributePrintNames):
+    f.write(att + "\t" + ("\t".join(map(lambda x: "%2.3f" % x, row))) + "\n")
+f.close()"""
+
+attributeNameTranslation = dict(zip(attributeNames, attributePrintNames))
+corrData, weightData = corrGraphData(corrs, method = "spearman", threshold=0.7, attributeNameTranslation=attributeNameTranslation)
+writeGraphToFile(corrData, weightData, animated=True)
+>>>>>>> c1d847f9933d66a47795fd212c3631dbcb27ee29

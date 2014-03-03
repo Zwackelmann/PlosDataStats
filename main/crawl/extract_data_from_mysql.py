@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import MySQLdb
 import json
 
@@ -7,6 +8,11 @@ db = MySQLdb.connect(
     passwd="123los",
     db="saschaexperts"
 )
+=======
+from main.util.db import openDb
+
+db = openDb("stuff/localconnect.json")
+>>>>>>> c1d847f9933d66a47795fd212c3631dbcb27ee29
 
 cur = db.cursor() 
 cur.execute("SELECT * FROM users_twitter")
