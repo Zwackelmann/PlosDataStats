@@ -132,29 +132,17 @@ class SimpleDoc:
     def __init__(self, docData):
         """Document Structure:
         [[0]   [1]     [2]        [3]            [4]            [5]              [6]                  [7]        [8]    [9]    [10]     [11]      [12]           [13]            [14]              [15]             [16]            [17]           [18]               [19]               [20]             [21]           [22]           [23]           [24]       [25]    [26]        [27]              [28]            [29]           [30]           [31]             [32]           [33]            [34]         ]
-<<<<<<< HEAD
-        [doi, title, pubDate, twitterData, citationTimeline, citations, mendeleyDisciplineList, mendeleyReaders, issn, issue, volume, pdfViews, htmlViews, citeULikeShares, citeULikeTotal, connoteaCitations, connoteaTotal, natureCitations, natureTotal, postgenomicCitations, postgenomicTotal, pubmedCitations, pubmedTotal, scopusCitations, scopusTotal, pmcPdf, pmcHtml, facebookShares, facebookComments, facebookLikes, facebookTotal, mendeleyGroups, mendeleyShares, mendeleyTotal, relativemetricTotal]
-=======
         [doi, title, pubDate, twitterData, crossrefTimeline, crossrefs, mendeleyDisciplineList, mendeleyReaders, issn, issue, volume, pdfViews, htmlViews, citeULikeShares, citeULikeTotal, connoteaCitations, connoteaTotal, natureCitations, natureTotal, postgenomicCitations, postgenomicTotal, pubmedCitations, pubmedTotal, scopusCitations, scopusTotal, pmcPdf, pmcHtml, facebookShares, facebookComments, facebookLikes, facebookTotal, mendeleyGroups, mendeleyShares, mendeleyTotal, relativemetricTotal]
->>>>>>> c1d847f9933d66a47795fd212c3631dbcb27ee29
 
         twitterData:
                      [      [0]      [1]                 [2]                         [3]    ]
             list of: [ "tweet text", user, retweetUser (None, wenn kein retweet), zeitpunkt ]
 
-<<<<<<< HEAD
-        citationTimeline:
-                     [    [0]           [1]      ]
-            list of: [ zeitpunkt, totalCitations ]
-
-        citations:
-=======
         crossrefTimeline:
                      [    [0]           [1]      ]
             list of: [ zeitpunkt, totalCitations ]
 
         crossrefs:
->>>>>>> c1d847f9933d66a47795fd212c3631dbcb27ee29
                      [[0]   [1]         [2]      ]
             list of: [doi, issn, publication_type]
         mendeleyDisciplineList: list of strings
@@ -194,7 +182,6 @@ class SimpleDoc:
         self.facebookShares = docData[27]
         self.facebookComments = docData[28]
         self.facebookLikes = docData[29]
-        self.facebookTotal = docData[30]
         self.mendeleyGroups = docData[31]
         self.mendeleyShares = docData[32]
         self.mendeleyTotal = docData[33]
@@ -245,9 +232,35 @@ class SimpleDoc:
     def maxCitations(self):
         return max([self.numCrossrefs(), self.scopusCitations, self.pubmedCitations])
 
+    def sumCitations(self):
+        n = 0
+        n += self.numCrossrefs() if self.numCrossrefs() != None else 0
+        n += self.scopusCitations if self.scopusCitations != None else 0
+        n += self.pubmedCitations if self.pubmedCitations != None else 0
+        return n
+
     def tweetTimespan(self):
         timestamps = map(lambda tweet: tweet.timestamp, self.tweets)
         return max(timestamps) - min(timestamps)
+
+    def facebookTotal(self):
+        n = 0
+        n += self.facebookShares if self.facebookShares != None else 0
+        n += self.facebookComments if self.facebookComments != None else 0
+        n += self.facebookLikes if self.facebookLikes != None else 0
+        return n
+
+    def plosViews(self):
+        n = 0
+        n += self.htmlViews if self.htmlViews != None else 0
+        n += self.pdfViews if self.pdfViews != None else 0
+        return n
+
+    def pmcViews(self):
+        n = 0
+        n += self.pmcHtml if self.pmcHtml != None else 0
+        n += self.pmcPdf if self.pmcPdf != None else 0
+        return n
 
     def age(self):
         return SimpleDoc.maximumTimestampInDataset-self.publicationTimestamp
@@ -747,8 +760,13 @@ def groupCount(l):
 
     return list(d.items())
 
-def powerset(a):
-    for subset in itertools.chain.from_iterable(itertools.combinations(a, r) for r in range(len(a)+1)):
+def powerset(a, minLen = None, maxLen = None):
+    upperBound=len(a)+1 if maxLen==None else maxLen+1
+    lowerBound=0 if minLen==None else minLen
+
+    rng = range(lowerBound, upperBound)
+    
+    for subset in itertools.chain.from_iterable(itertools.combinations(a, r) for r in rng):
         yield set(subset)
 
 class Log:
@@ -771,3 +789,13 @@ class Log:
     def close(self):
         if self.filename != None:
             self.filehandle.close()
+
+def applyCall(obj, call):
+    x = getattr(obj, call[0])
+
+    if call[1] == None:
+        return x
+    elif type(call[1]) is tuple:
+        return x(*call[1])
+    else:
+        raise ValueError("apply call with call: " + repr(call) + " failed")

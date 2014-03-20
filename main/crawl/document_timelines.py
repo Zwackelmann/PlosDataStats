@@ -53,7 +53,7 @@ print maxTimestamp
 numObservedDays = 500
 
 docsTimelines = DocumentTimelines.fromFile("data/document_timelines_trimmed.json", trimmed=True, sort=True)
-attributes = [ ("scopusTimeline", (3,9)), ("crossrefTimeline", (3,9)), ("pubmedTimeline", (3,9)) ]
+attributes = [ ("scopusTimeline", (3, 9)), ("crossrefTimeline", (3, 9)), ("pubmedTimeline", (3,9)) ]
 
 """[("citeULikeTimeline", (3,9)), ("pubmedTimeline", (3,9)),
     ("scopusTimeline", (3, 9)), ("pmcTimeline", (6, 11)), ("facebookTimeline", (12, 11)), 
@@ -113,12 +113,23 @@ for relDay in range(0, numObservedDays):
 
 ys.append(avgTweetsOnDay)"""
 
+
 x = range(0, numObservedDays)
+linewidths = [ 1.0, 2.0, 2.0, 3.0 ]
+linestyles = ['-', '-.', '--', ':']
+colors = ('b', 'g', 'r', 'k', 'm', 'y', 'k')
 
 plots = []
+count = 0
 for y in ys:
-    plot, = plt.plot(x, y)
+    color = colors[count % len(colors)]
+    linestyle = linestyles[count % len(linestyles)]
+    linewidth = linewidths[count % len(linewidths)]
+
+    plot, = plt.plot(x, y, linestyle, color=color, linewidth=linewidth)
     plots.append(plot)
+
+    count += 1
 
 plt.xlabel("day")
 plt.ylabel("avg value of metric")

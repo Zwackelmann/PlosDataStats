@@ -30,7 +30,9 @@ def barPlot(plt, labels, values, width = 0.35):
     ind = np.arange(totalBars)
 
     ax = plt.axes()
-    rects = ax.bar(ind+width/2, values, width, color='r')
+    for valueRow in values:
+        print valueRow
+        rects = ax.bar(ind+width/2, valueRow, width, color='r')
     ax.set_xticks(ind+width)
     ax.set_xticklabels(labels)
 

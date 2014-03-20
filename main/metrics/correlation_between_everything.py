@@ -1,22 +1,9 @@
-from main.util.common import SimpleDoc, rankCorrelation
+from main.util.common import SimpleDoc, rankCorrelation, applyCall
 import math
 import json
 import numpy as np
 import itertools
-<<<<<<< HEAD
-=======
 from main.util.graph import writeGraphToFile
->>>>>>> c1d847f9933d66a47795fd212c3631dbcb27ee29
-
-def applyCall(obj, call):
-    x = getattr(obj, call[0])
-
-    if call[1] == None:
-        return x
-    elif type(call[1]) is tuple:
-        return x(*call[1])
-    else:
-        raise ValueError("apply call with call: " + repr(call) + " failed")
 
 def getAttributeStats(matrix):
     attributeStats = { }
@@ -58,18 +45,6 @@ def corrcoeff(x, y):
     else:
         return sumErrorProducts / math.sqrt(xSquareError*ySquareError)
 
-<<<<<<< HEAD
-def correlationBetweenEverything(matrix, filename):
-    f = open(filename, "w")
-    pairs = [(x, y) for x in range(0, numAttributes) for y in range(0, numAttributes)]
-
-    for pair in pairs:
-        pearson, tau, r, p1, numPairs, leftZeroPairs, rightZeroPairs, bothZeroPairs = correlationBetweenAttributes(matrix, pair[0], pair[1])
-
-        corr = CorrelationItem(
-            corrFrom = attributeNames[pair[0]], 
-            corrTo = attributeNames[pair[1]], 
-=======
 def correlationBetweenEverything(matrix, attributeNames):
     numAttributes = len(attributeNames)
     pairs = [(x, y) for x in range(0, numAttributes) for y in range(x+1, numAttributes)]
@@ -81,7 +56,6 @@ def correlationBetweenEverything(matrix, attributeNames):
         correlationItems.append(CorrelationItem(
             corrFrom = attributeNames[corrFrom], 
             corrTo = attributeNames[corrTo], 
->>>>>>> c1d847f9933d66a47795fd212c3631dbcb27ee29
             numValidPairs = numPairs, 
             leftZeroPairs = leftZeroPairs,
             rightZeroPairs = rightZeroPairs, 
@@ -90,17 +64,9 @@ def correlationBetweenEverything(matrix, attributeNames):
             spearman = r, 
             pearson = pearson, 
             pValue = p1
-<<<<<<< HEAD
-        )
-        f.write(corr.toJson() + "\n")
-        print corr.prettyPrint() + "\n\n"
-
-    f.close()
-=======
         ))
 
     return correlationItems
->>>>>>> c1d847f9933d66a47795fd212c3631dbcb27ee29
 
 
 def correlationBetweenAttributes(matrix, i, j):
@@ -174,55 +140,8 @@ class CorrelationItem:
         lines = open(filename)
         return [ cls.fromJson(line) for line in lines ]
 
-<<<<<<< HEAD
-# mendeleyShares = mendeleyReaders => removed ("mendeleyShares", None)
-# mendeleyTotal = mendeleyReaders => removed ("mendeleyTotal", None)
-# citeULikeShares = citeULikeTotal => removed ("citeULikeTotal", None)
-# scopusCitations = scopusTotal => removed ("scopusTotal", None)
-# pubmedTotal = pubmedCitations => removed ("pubmedTotal", None)
-# natureTotal = natureCitations => removed ("natureTotal", None)
-# postgenomicTotal = postgenomicCitations => removed ("postgenomicTotal", None)
-# connoteaTotal = connoteaCitations => removed ("connoteaTotal", None)
-# ("facebookTotal", None) removed
-callList = [
-    ("mendeleyReaders", None), ("pdfViews", None), ("htmlViews", None), ("citeULikeShares", None),
-    ("connoteaCitations", None), ("natureCitations", None), ("postgenomicCitations", None), 
-    ("pubmedCitations", None), ("scopusCitations", None), ("pmcPdf", None), ("pmcHtml", None), 
-    ("facebookShares", None), ("facebookComments", None), ("facebookLikes", None), 
-    ("mendeleyGroups", None), ("relativemetricTotal", None), ("numTweets", ()), 
-    ("numCitations", ()), ("totalViews", ())
-]
-
-attributeNames = map(lambda call: call[0], callList)
-
-"""matrix = map(lambda doc: map(lambda call: applyCall(doc, call), callList), SimpleDoc.getallBetween((2012,6), (2012,8)))
-numAttributes = len(attributeNames)
-correlationBetweenEverything(matrix, "pairwise_corr_2012-6_2012-8.json")"""
-
-"""corrAll = CorrelationItem.fromFile("pairwise_corr_all_documents.json")
-corrNew = CorrelationItem.fromFile("pairwise_corr_2012-6_2012-8.json")
-
-corrPairs = [ [corr1, corr2] for corr1 in corrAll for corr2 in corrNew if corr1.corrFrom==corr2.corrFrom and corr1.corrTo==corr2.corrTo ]    
-
-corrDiffs = []
-for corrPair in corrPairs:
-    attFrom = corrPair[0].corrFrom
-    attTo = corrPair[0].corrTo
-
-    diff = abs(corrPair[0].correlation()-corrPair[1].correlation())
-    corrDiffs.append([diff, corrPair])
-
-sortedCorrDiffs = map(lambda x: x[1], sorted(corrDiffs, key=lambda x: x[0], reverse=True))
-
-for corrPair in sortedCorrDiffs[:50]:
-    print corrPair[0].prettyPrint()
-    print ""
-    print corrPair[1].prettyPrint()
-    print "\n\n"""
-=======
 def getAttributeValueMatrix(docs, callList):
     return map(lambda doc: map(lambda call: applyCall(doc, call), callList), docs)
->>>>>>> c1d847f9933d66a47795fd212c3631dbcb27ee29
 
 def findMirrorPairIndex(corrs, ind):
     corr1 = corrs[ind]
@@ -254,15 +173,6 @@ def removeReflexiveCorrs(corrs):
         del corrs[delIndex]
         return removeReflexiveCorrs(corrs)
 
-<<<<<<< HEAD
-corrs = CorrelationItem.fromFile("pairwise_corr_2012-6_2012-8.json")
-filteredCorrs = removeReflexiveCorrs(removeAllMirrorPairs(corrs))
-
-def findCorr(corrs, corrFrom, corrTo):
-    reverse = False
-    targetIndex = next( (i for i in xrange(0, len(corrs)) if corrs[i].corrFrom==corrFrom and corrs[i].corrTo==corrTo), None)
-    
-=======
 def findCorr(corrs, corrFrom, corrTo, method="spearman"):
     if corrFrom == corrTo:
         return 1.0
@@ -271,51 +181,10 @@ def findCorr(corrs, corrFrom, corrTo, method="spearman"):
     targetIndex = next( (i for i in xrange(0, len(corrs)) if corrs[i].corrFrom==corrFrom and corrs[i].corrTo==corrTo), None)
     targetCorr = None
 
->>>>>>> c1d847f9933d66a47795fd212c3631dbcb27ee29
     if targetIndex == None:
         targetIndex = next( (i for i in xrange(0, len(corrs)) if corrs[i].corrFrom==corrTo and corrs[i].corrTo==corrFrom), None)
         if targetIndex != None:
             reverse = True
-<<<<<<< HEAD
-            return corrs[targetIndex].correlation()
-        else:
-            return None
-    else:
-        return corrs[targetIndex].correlation()
-
-f = open("foo", "w")
-for corr1 in attributeNames:
-    corrsForAttribute = []
-    for corr2 in attributeNames:
-        c = findCorr(corrs, corr1, corr2)
-        corrsForAttribute.append(str(c) if not c is None else "None")
-
-    f.write("\t".join(corrsForAttribute) + "\n")
-f.close()
-
-"""for attr, corrGroup in itertools.groupby(corrs, lambda corr: corr.corrFrom):
-    sortedCorrGroup = sorted( corrGroup, key=lambda corr: corr.correlation(), reverse=True )
-
-    print "Correlations to " + attr + ":\n======================================="
-    for corr in sortedCorrGroup:
-        print corr.prettyPrint() + "\n\n"""
-
-"""for corr in filteredCorrs:
-    if corr.correlation() > 0.4:
-        print "  " + json.dumps({ "source" : corr.corrFrom, "target" : corr.corrTo, "weight" : corr.correlation()}) + ","
-
-
-v = [ ]
-for corr in filteredCorrs:
-    v.append(corr.numValidPairs)
-numDocuments = max(v)
-
-weight = { }
-for corr in filteredCorrs:
-    weight[corr.corrFrom] = numDocuments-corr.leftZeroPairs
-
-print json.dumps(dict([(k, float(v)/numDocuments) for k, v in weight.items()]))"""
-=======
             targetCorr = corrs[targetIndex]
     else:
         targetCorr = corrs[targetIndex]
@@ -451,20 +320,25 @@ calls = map(lambda x: x[0], attributeList)
     print attName + "\t" + "\t".join(map(lambda x: str(x), [minV, maxV, meanV, std]))
 """
 
-
-# docs = SimpleDoc.getallBetween((2012, 5), (2012, 8))
-
-"""matrix = getAttributeValueMatrix(docs, calls)
+cat = "Biological Sciences"
+"""consideredDocs = filter(
+        lambda doc: 
+            doc.mendeleyDisciplines != None and cat in doc.mendeleyDisciplines, 
+            SimpleDoc.getallBetween((2012,6), (2012,8))
+    )"""
+consideredDocs = SimpleDoc.getallBetween((2012,6), (2012,8))
+print len(consideredDocs)
+matrix = getAttributeValueMatrix(consideredDocs, calls)
 corrs = correlationBetweenEverything(matrix, attributeNames)
 
-f = open("foo", "w")
+"""f = open("foo", "w")
 for corr in corrs:
     f.write(corr.toJson() + "\n")
 f.close()"""
 
-corrs = CorrelationItem.fromFile("stuff/pairwise_corr_2012-6_2012-8.json")
+# corrs = CorrelationItem.fromFile("stuff/pairwise_corr_2012-6_2012-8.json")
 
-"""f = open("foo", "w")
+f = open("foo", "w")
 m = []
 for a1 in attributeNames:
     row = []
@@ -475,9 +349,8 @@ for a1 in attributeNames:
 f.write("\t" + "\t".join(attributePrintNames) + "\n")
 for row, att in zip(m, attributePrintNames):
     f.write(att + "\t" + ("\t".join(map(lambda x: "%2.3f" % x, row))) + "\n")
-f.close()"""
+f.close()
 
-attributeNameTranslation = dict(zip(attributeNames, attributePrintNames))
-corrData, weightData = corrGraphData(corrs, method = "spearman", threshold=0.7, attributeNameTranslation=attributeNameTranslation)
-writeGraphToFile(corrData, weightData, animated=True)
->>>>>>> c1d847f9933d66a47795fd212c3631dbcb27ee29
+"""attributeNameTranslation = dict(zip(attributeNames, attributePrintNames))
+corrData, weightData = corrGraphData(corrs, method = "spearman", threshold=0.4, attributeNameTranslation=attributeNameTranslation)
+writeGraphToFile(corrData, weightData, animated=True)"""

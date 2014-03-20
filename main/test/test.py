@@ -1,64 +1,33 @@
-<<<<<<< HEAD
-class Test:
-    def __init__(self, foo):
-        self.foo = foo
+"""
+# WTF!?
+docs = [
+    [ ['a', 'b', 'c', 'd'], [1, 2, 3] ], 
+    [ ['d', 'e'], [4, 5, 6] ], 
+    [ ['g', 'h', 'i'], [7, 8, 9] ]
+]
 
-    def sayFoo(self):
-        return self.foo * 3
+print docs
+totalStrings = sum((1 for doc in docs for doc[0] in doc))
+print docs"""
 
-l = [("sayFoo", True), ("foo", False)]
-
-x1 = Test("hallo")
-
-for att, call in l:
-    if call:
-        x = getattr(x1, att)()
-    else:
-        x = getattr(x1, att)
-
-    print x
-=======
-import json
 import matplotlib.pyplot as plt
-from main.util.common import SimpleDoc
+from matplotlib.lines import Line2D
 import numpy as np
-from scipy import stats
 
-def rankCorrelation(x, y):
-    numPairs = len(x)
-    pairs = zip(range(0, numPairs), x, y)
+t = np.arange(0.0, 1.0, 0.1)
+s = np.sin(2*np.pi*t)
+linewidths = [ 1.0, 2.0, 2.0, 3.0 ]
+linestyles = ['-', '-.', '--', ':']
+colors = ('b', 'g', 'r', 'k', 'm', 'y', 'k')
 
-    identsByX = map( lambda pair: pair[0],
-        sorted(pairs, key=lambda pair: pair[1], reverse=True)
-    )
+axisNum = 0
+for row in range(len(linestyles)):
+    axisNum += 1
+    ax = plt.subplot(1, len(linestyles), axisNum)
+    color = colors[(axisNum-1) % len(colors)]
+    plt.plot(t, s, linestyles[(axisNum-1)], color=color, linewidth=linewidths[(axisNum-1)])
 
-    identsByY = map( lambda pair: pair[0],
-        sorted(pairs, key=lambda pair: pair[2], reverse=True)
-    )
+    ax.set_yticklabels([])
+    ax.set_xticklabels([])
 
-    identsByXRank = { }
-    rank = 0
-    for ident in identsByX:
-        identsByXRank[ident] = rank
-        rank += 1
-
-    identsByX2 = range(0, numPairs)
-    identsByY2 = []
-
-    for ident in identsByY:
-        identsByY2.append(identsByXRank[ident])
-
-    r, pValue2 = stats.spearmanr(identsByX2, identsByY2)
-
-    return r, pValue2
-
-
-def rankCorrelation2(x, y):
-    return stats.spearmanr(x, y)
-
-x = [ 2.0, 3.0, 3.0, 5.0, 5.5, 8.0, 10.0, 10.0 ]
-y = [ 1.5, 1.5, 4.0, 3.0, 1.0, 5.0, 5.0, 9.5 ]
-
-print rankCorrelation2(x, y)
-print rankCorrelation(x, y)
->>>>>>> c1d847f9933d66a47795fd212c3631dbcb27ee29
+plt.show()

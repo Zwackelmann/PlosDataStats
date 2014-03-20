@@ -1,55 +1,46 @@
-from main.util.common import simpleDocs, mendeleyDisciplines, writeJsonToData
+from sklearn.feature_extraction.text import CountVectorizer
 
-def oddsRatioForEachUser(mendeleyDiscipline):
-    numTargetDocs = 0
-    numOtherDocs = 0
+tokenizer = CountVectorizer().build_tokenizer()
 
-    userMapTarget = { }
-    userMapOther = { } 
+def oddsRatioForEachFactor(targetItems, otherItems):
+    numTargetItems = len(targetItems)
+    numOtherItems = len(otherItems)
 
-    userSet = set()
+    factorMapTarget = { }
+    factorMapOther = { } 
 
-    for doc in [ doc for doc in simpleDocs() if doc.mendeleyDisciplines != None]:
-        tweeters = set([tweet.user for tweet in doc.tweets])
-        userSet |= tweeters
+    factorSet = set()
+
+    for item in targetItems:
+        factors = set(item)
+        factorSet |= factors
         
-        if mendeleyDiscipline in doc.mendeleyDisciplines:
-            numTargetDocs += 1
-            for user in tweeters:
-                userMapTarget[user] = userMapTarget.get(user, 0) + 1
+        for factor in factors:
+            factorMapTarget[factor] = factorMapTarget.get(factor, 0) + 1
 
-        else:
-            numOtherDocs += 1
+    for item in otherItems:
+        factors = set(item)
+        factorSet |= factors
+        
+        for factor in factors:
+            factorMapOther[factor] = factorMapOther.get(factor, 0) + 1
 
-            for user in tweeters:
-                userMapOther[user] = userMapOther.get(user, 0) + 1
-    
-    def numDocsCatAndUser(user):
-        return userMapTarget.get(user, 0)
-    def numDocsCatAndNotUser(user):
-        return numTargetDocs - userMapTarget.get(user, 0)
-    def numDocsNotCatAndUser(user):
-        return userMapOther.get(user, 0)
-    def numDocsNotCatAndNotUser(user):
-        return numOtherDocs - userMapOther.get(user, 0)
+    def numItemsTargetAndFactor(factor):
+        return factorMapTarget.get(factor, 0)
+    def numItemsTargetAndNotFactor(factor):
+        return numTargetItems - factorMapTarget.get(factor, 0)
+    def numItemsNotTargetAndFactor(factor):
+        return factorMapOther.get(factor, 0)
+    def numItemsNotTargetAndNotFactor(factor):
+        return numOtherItems - factorMapOther.get(factor, 0)
 
-    def score(user):
-        if numDocsCatAndUser(user) == 0 or numDocsNotCatAndNotUser(user) == 0:
+    def score(factor):
+        if numItemsTargetAndFactor(factor) == 0 or numItemsNotTargetAndNotFactor(factor) == 0:
             return 0.0
-        elif numDocsCatAndNotUser(user) == 0 or numDocsNotCatAndUser(user) == 0:
+        elif numItemsTargetAndNotFactor(factor) == 0 or numItemsNotTargetAndFactor(factor) == 0:
             return float("inf")
         else:
-            return (float(numDocsCatAndUser(user)) * numDocsNotCatAndNotUser(user)) / (long(numDocsCatAndNotUser(user)) * numDocsNotCatAndUser(user))
+            return (float(numItemsTargetAndFactor(factor)) * numItemsNotTargetAndNotFactor(factor)) / (long(numItemsTargetAndNotFactor(factor)) * numItemsNotTargetAndFactor(factor))
 
-    return map(lambda x: [x, score(x)], userSet)
+    return map(lambda x: [x, score(x)], factorSet)
 
-orForDesc = {}
-for disc in mendeleyDisciplines:
-    descsOrs = oddsRatioForEachUser(disc)
-    print disc
-    for userOr in descsOrs:
-        descList = orForDesc.get(userOr[0], [])
-        descList.append([disc, userOr[1]])
-        orForDesc[userOr[0]] = descList
-
-writeJsonToData(orForDesc, "user_to_or.json")
